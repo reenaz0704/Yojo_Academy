@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Academy | Yojo Cyber Academy</title>
+<meta name="description" content="Yojo Cyber Academy student main page: Academy, LMS and Courses.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+/* Theme tokens copied from index.html */
+:root{
+  color-scheme: dark;
+  --bg:#0A1220; --bg-deep:#070D18; --surface:#111C30; --surface-2:#16233B; --border:#22324D;
+  --green:#39D98A; --blue:#3B82F6; --quantum:#5B8CFF; --amber:#FFB000; --red:#F87171; --purple:#A78BFA;
+  --text:#E6EDF7; --muted:#9AA9C2; --dim:#6B7C99;
+  --grad: linear-gradient(100deg, var(--green) 0%, #22C3B5 45%, var(--blue) 100%);
+  --grad-soft: linear-gradient(135deg, rgba(57,217,138,.16), rgba(59,130,246,.16));
+  --glass: rgba(17,28,48,.62); --glass-line: rgba(120,160,220,.16);
+  --glow-g: 0 0 24px rgba(57,217,138,.35); --glow-b: 0 0 24px rgba(59,130,246,.4);
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --r: 14px; --r-sm: 9px; --ease: cubic-bezier(.2,.8,.2,1);
+  --off:#F87171; --def:#5B8CFF; --grc:#39D98A;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.55 var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:
+  radial-gradient(900px 520px at 85% -10%, rgba(59,130,246,.18), transparent 60%),
+  radial-gradient(800px 600px at -10% 30%, rgba(57,217,138,.10), transparent 60%),
+  linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.3;
+  background-image:linear-gradient(rgba(120,160,220,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(120,160,220,.07) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 20%,#000 30%,transparent 75%)}
+a{color:var(--green)}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.15;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(1.7rem,3.4vw,2.4rem)} h2{font-size:1.3rem} h3{font-size:1rem}
+p{margin:0}
+.mono{font-family:var(--f-mono)}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.note{color:var(--muted);font-size:.84rem}
+.eyebrow{font:600 .7rem/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:6px}
+svg.i{width:1.1em;height:1.1em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.btn{--h:40px;display:inline-flex;align-items:center;justify-content:center;gap:.5em;height:var(--h);padding:0 1.1rem;border-radius:999px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font:600 .88rem var(--f-display);text-decoration:none;cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s,border-color .2s;white-space:nowrap}
+.btn:hover{transform:translateY(-2px);border-color:var(--quantum);box-shadow:var(--glow-b)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{background:var(--grad);color:#04121F;border:0}
+.btn-ghost{background:transparent;border-color:rgba(57,217,138,.45);color:var(--green)}
+.btn-amber{background:transparent;border-color:rgba(255,176,0,.55);color:var(--amber)}
+.btn-sm{--h:32px;padding:0 .8rem;font-size:.8rem}
+.chip{display:inline-flex;align-items:center;gap:.35em;font:600 .68rem var(--f-mono);letter-spacing:.06em;padding:.28em .65em;border-radius:999px;border:1px solid var(--border);color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.chip.g{color:var(--green);border-color:rgba(57,217,138,.45)} .chip.a{color:var(--amber);border-color:rgba(255,176,0,.45)}
+.chip.b{color:var(--quantum);border-color:rgba(91,140,255,.45)} .chip.r{color:var(--red);border-color:rgba(248,113,113,.45)} .chip.p{color:var(--purple);border-color:rgba(167,139,250,.45)}
+
+/* header */
+header.app{position:sticky;top:0;z-index:30;background:rgba(10,18,32,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--glass-line)}
+.hwrap{max-width:1280px;margin:0 auto;padding:0 clamp(12px,3vw,28px);display:flex;align-items:center;gap:1rem;min-height:62px}
+.logo{display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--text)}
+.logo svg{width:36px;height:36px}
+.logo b{font:700 1.1rem var(--f-display);letter-spacing:.06em}
+.maintabs{display:flex;gap:.25rem;margin-left:1rem}
+.maintabs a{padding:.45rem .9rem;border-radius:999px;color:var(--muted);text-decoration:none;font:600 .9rem var(--f-display)}
+.maintabs a[aria-current="page"]{background:var(--surface-2);color:var(--text);box-shadow:inset 0 0 0 1px var(--quantum)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:.5rem}
+.stat-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .65rem;border-radius:999px;border:1px solid var(--border);background:var(--bg-deep);font:600 .8rem var(--f-mono)}
+.stat-chip.xp{color:var(--amber)} .stat-chip.st{color:#FB923C}
+.iconbtn{position:relative;width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);display:grid;place-items:center;cursor:pointer}
+.iconbtn .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font:700 .65rem/18px var(--f-mono);text-align:center}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--grad);color:#04121F;font:700 .95rem var(--f-display);display:grid;place-items:center;border:0;cursor:pointer}
+.pop{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 24px));background:#0D1729;border:1px solid var(--glass-line);border-radius:var(--r);box-shadow:0 20px 50px rgba(0,0,0,.5);padding:.8rem;z-index:40}
+.rel{position:relative}
+
+/* sub nav */
+.subnav{max-width:1280px;margin:0 auto;padding:1rem clamp(12px,3vw,28px) 0;display:flex;gap:.3rem;flex-wrap:wrap;align-items:center}
+.subnav a{padding:.4rem .85rem;border-radius:var(--r-sm);color:var(--muted);text-decoration:none;font:600 .85rem var(--f-display);border:1px solid transparent}
+.subnav a[aria-current="page"]{color:var(--green);border-color:rgba(57,217,138,.4);background:rgba(57,217,138,.06)}
+.crumb{color:var(--dim);font:600 .8rem var(--f-mono);margin-right:.4rem}
+main{max-width:1280px;margin:0 auto;padding:1.2rem clamp(12px,3vw,28px) 80px}
+.grid{display:grid;gap:1rem}
+.g12{grid-template-columns:repeat(12,minmax(0,1fr))}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s6{grid-column:span 6}.s4{grid-column:span 4}.s3{grid-column:span 3}
+.card{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--glass-line);border-radius:18px;padding:1.1rem;min-width:0}
+.card h3{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font:600 .72rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem}
+.hero{display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.pathbadge{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .8rem;border-radius:999px;font:700 .82rem var(--f-display);border:1px solid}
+.pathbadge.Offensive{color:var(--off);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.08)}
+.pathbadge.Defensive{color:var(--def);border-color:rgba(91,140,255,.5);background:rgba(91,140,255,.08)}
+.pathbadge.GRC{color:var(--grc);border-color:rgba(57,217,138,.5);background:rgba(57,217,138,.08)}
+.prof{display:flex;gap:.9rem;align-items:center}
+.prof .av{width:54px;height:54px;border-radius:14px;background:var(--grad);color:#04121F;display:grid;place-items:center;font:700 1.3rem var(--f-display);clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}
+.bar{height:10px;border-radius:10px;background:var(--bg-deep);border:1px solid var(--border);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--grad);border-radius:10px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+.tile{border:1px solid var(--border);background:var(--surface);border-radius:var(--r);padding:.9rem;display:grid;gap:.15rem;position:relative}
+.tile b{font:700 1.5rem var(--f-display)}
+.tile.locked b{filter:blur(4px)}
+.tile .lock{position:absolute;top:.6rem;right:.6rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:.8rem}
+.list{display:grid;gap:.6rem}
+.item{display:flex;justify-content:space-between;align-items:center;gap:.8rem;padding:.7rem .8rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface)}
+.item.done{opacity:.6}
+.cal{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+.cal i{aspect-ratio:1;border-radius:4px;background:var(--bg-deep);border:1px solid var(--border)}
+.cal i.on{background:#FB923C;border-color:#FB923C;box-shadow:0 0 8px rgba(251,146,60,.4)}
+.meter{display:grid;gap:.25rem;margin-bottom:.6rem}
+.meter .bar i.Offensive{--blade:var(--off)} .meter .bar i.Defensive{--blade:var(--def)} .meter .bar i.GRC{--blade:var(--grc)}
+.badges{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem}
+.badges span{aspect-ratio:1;display:grid;place-items:center;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-size:1.2rem}
+.badges span.off{opacity:.25;filter:grayscale(1)}
+.courses{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.9rem}
+.course{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface);display:grid}
+.course .cv{height:86px;position:relative;display:flex;align-items:flex-end;padding:.6rem}
+.course .bd{padding:.8rem;display:grid;gap:.4rem}
+.missions{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.9rem}
+.mission{border:1px solid var(--border);border-radius:var(--r);padding:.9rem;background:var(--surface);display:grid;gap:.5rem}
+.mission.cleared{border-color:rgba(57,217,138,.45)}
+.filters{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.filters button{border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:999px;padding:.35rem .8rem;font:600 .8rem var(--f-display);cursor:pointer}
+.filters button[aria-pressed="true"]{color:#04121F;background:var(--grad);border-color:transparent}
+input,select,textarea{background:var(--bg-deep);border:1px solid var(--border);color:var(--text);border-radius:var(--r-sm);padding:.6rem .8rem;font:400 .9rem var(--f-body);min-width:0}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;align-items:end;margin-bottom:1rem}
+.podium div{border:1px solid var(--border);border-radius:var(--r);background:var(--surface);text-align:center;padding:.9rem .5rem}
+.podium .p1{border-color:rgba(255,176,0,.6);box-shadow:0 0 20px rgba(255,176,0,.15);padding-top:1.6rem}
+.lb{width:100%;border-collapse:collapse}
+.lb td{padding:.55rem .5rem;border-bottom:1px solid var(--border)}
+.lb tr.me td{background:rgba(57,217,138,.08);color:var(--green);font-weight:600}
+.empty{border:1px dashed var(--border);border-radius:var(--r);padding:1.4rem;text-align:center;display:grid;gap:.6rem;justify-items:center}
+.notif{display:grid;gap:.15rem;padding:.6rem;border-radius:var(--r-sm);border-left:3px solid var(--border);cursor:pointer}
+.notif.unread{background:rgba(255,255,255,.03)}
+.notif.unread b::before{content:"● ";color:var(--green)}
+.notif.k-important,.notif.k-dues{border-left-color:var(--amber)} .notif.k-message{border-left-color:var(--quantum)} .notif.k-wish{border-left-color:var(--purple)} .notif.k-holiday{border-left-color:var(--green)}
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(3,7,14,.6);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px}
+.modal{width:min(640px,100%);max-height:88vh;overflow:auto;background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),#0C1628;border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:1.4rem;display:grid;gap:.9rem}
+.toasts{position:fixed;right:16px;bottom:16px;z-index:70;display:grid;gap:.5rem}
+.toast{background:var(--surface-2);border:1px solid var(--glass-line);border-left:3px solid var(--green);border-radius:10px;padding:.7rem 1rem;font-size:.86rem;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.gate{max-width:520px;margin:12vh auto;text-align:center;display:grid;gap:1rem;justify-items:center}
+.scroll{border:1px solid var(--border);border-radius:var(--r);padding:1rem;background:var(--surface);display:grid;gap:.4rem}
+@media (max-width:1000px){ .s8,.s6,.s4,.s3{grid-column:span 12} .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:720px){ .maintabs{position:fixed;bottom:0;left:0;right:0;margin:0;justify-content:space-around;background:rgba(10,18,32,.95);border-top:1px solid var(--border);padding:.4rem;z-index:30}
+  .stat-chip.st,.logo b{display:none} main{padding-bottom:110px} .podium{grid-template-columns:1fr} .badges{grid-template-columns:repeat(4,1fr)} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+/* Training Grid LMS: sidebar of sections, one section at a time */
+.lms{display:grid;grid-template-columns:260px minmax(0,1fr);gap:1rem;align-items:start}
+.lms-side{display:grid;align-self:start;align-content:start;margin:0;gap:.25rem;padding:.7rem;position:sticky!important;top:84px}
+.lms-side a{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:.5rem;padding:.55rem .6rem;border-radius:12px;border:1px solid transparent;color:var(--text);text-decoration:none}
+.lms-side a b{display:block;font:600 .84rem var(--f-display)} .lms-side a small{display:block;font-size:.7rem;color:var(--muted)}
+.lms-side a:hover{background:var(--surface);border-color:var(--border)}
+.lms-side a[aria-current]{background:rgba(57,217,138,.08);border-color:rgba(57,217,138,.45);box-shadow:inset 3px 0 0 var(--green)}
+.lms-side .ic{font-size:1.1rem;text-align:center} .lms-side .lk{font-size:.8rem;opacity:.8}
+.lms-plan{font:700 .7rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--green);padding:.3rem .6rem .6rem}.lms-plan.paid{color:var(--amber)}
+.lms-tiles{grid-template-columns:repeat(5,minmax(0,1fr))}.lms-tiles .tile b{font:700 1.6rem var(--f-display)}
+.lms-person{display:flex;gap:.9rem;align-items:center}.lms-person .av{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--quantum);color:#fff;flex:none}
+.lms-blur{filter:blur(4px);opacity:.5;display:grid;gap:.5rem;pointer-events:none;user-select:none}
+.lms-blur-row{display:flex;gap:.6rem;align-items:center;margin-top:1rem;padding:.7rem;border:1px dashed rgba(255,176,0,.45);border-radius:12px}
+.lms-due.urgent{color:var(--red);font-weight:700}.lms-due.soon{color:var(--amber)}
+.lms-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:.35rem;text-align:center}
+.lms-cal i{display:grid;place-items:center;aspect-ratio:1.4;border-radius:8px;font-style:normal}.lms-cal i b{font-size:.78rem}
+.cal-d.p{background:rgba(57,217,138,.25);border:1px solid var(--green)}.cal-d.a{background:rgba(248,113,113,.25);border:1px solid var(--red)}
+.cal-d.l{background:rgba(255,176,0,.22);border:1px solid var(--amber)}.cal-d.n{background:var(--bg-deep);border:1px solid var(--border);color:var(--muted)}
+.lms-legend{display:flex;flex-wrap:wrap;gap:1rem;margin-top:.8rem;font-size:.8rem;color:var(--muted)}.lms-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:.35rem}
+.lms-ul{display:grid;gap:.35rem;padding-left:1.1rem;color:var(--muted);font-size:.88rem}
+@media (max-width:820px){.lms{grid-template-columns:1fr}.lms-side{position:static!important;grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto}.lms-side a{grid-template-columns:24px auto}.lms-side a small,.lms-plan{display:none}.lms-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Training Grid overview (attendance): stat cards, chart, week, campaigns, challenge and placement */
+.lms-main{display:grid;gap:1rem;min-width:0}
+.ov-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap}
+.ov-crumb{font:600 .7rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--quantum);text-decoration:none}
+.ov-head h2{font:700 1.55rem var(--f-display);margin-top:.3rem}
+.ov-lbl{display:block;font:600 .66rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ov-stats{display:grid;grid-template-columns:1.25fr repeat(4,1fr);gap:.8rem}
+.ov-stat{display:flex!important;flex-wrap:nowrap!important;min-height:0!important;align-items:center;gap:.8rem;padding:1rem;border-radius:14px;background:var(--glass);border:1px solid var(--glass-line);position:relative;min-width:0}
+.ov-stat b{font:700 1.9rem/1.1 var(--f-display)} .ov-stat b small{font-size:.8rem;color:var(--muted);font-weight:500}
+.ov-ic{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:1.1rem;font-weight:700;background:rgba(91,140,255,.12);border:1px solid rgba(91,140,255,.4);color:var(--quantum)}
+.ov-stat.hero{border-color:rgba(57,217,138,.55);box-shadow:0 0 22px rgba(57,217,138,.14),inset 0 0 0 1px rgba(57,217,138,.15)}
+.ov-stat.hero b{font-size:2.3rem;color:var(--green)} .ov-stat.hero .ov-ic{background:rgba(57,217,138,.12);border-color:rgba(57,217,138,.5);color:var(--green)}
+.ov-delta{position:absolute!important;right:.9rem;bottom:.8rem;font:600 .78rem var(--f-mono);color:var(--green)}
+.ov-stat.g .ov-ic{color:var(--green);border-color:rgba(57,217,138,.45);background:rgba(57,217,138,.1)}
+.ov-stat.r .ov-ic{color:var(--red);border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1)} .ov-stat.r b{color:var(--red)}
+.ov-stat.a .ov-ic{color:var(--amber);border-color:rgba(255,176,0,.5);background:rgba(255,176,0,.1)} .ov-stat.a b{color:var(--amber)}
+.ov-mini{height:5px;margin-top:.4rem;width:70px;max-width:100%}
+.ov-chart{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:1.4rem;align-items:center}
+.ov-sum{display:flex;gap:1.2rem;align-items:center}.ov-big{font:700 1.3rem var(--f-display)}
+.ov-up{color:var(--green);font-weight:600;margin-top:.4rem}
+.ov-bars{border-left:1px solid var(--glass-line);border-right:1px solid var(--glass-line);padding:0 1.2rem}
+.ov-cols{display:flex;gap:.9rem;align-items:flex-end;height:110px;margin-top:.6rem;border-bottom:1px solid var(--border)}
+.ov-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:.3rem;position:relative}
+.ov-col span{font:600 .74rem var(--f-mono)} .ov-col i{display:block;width:100%;max-width:44px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--green),rgba(57,217,138,.45))}
+.ov-col i.lo{background:linear-gradient(180deg,var(--quantum),rgba(91,140,255,.45))} .ov-col small{position:absolute;bottom:-1.3rem;font-size:.7rem;color:var(--muted)}
+.ov-acts{display:grid;gap:.6rem}
+.ov-two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.ov-link{font:600 .72rem var(--f-hud,inherit);letter-spacing:.04em;text-transform:none;color:var(--quantum);text-decoration:none}
+.ov-class,.ov-course{display:flex;align-items:center;gap:.9rem;padding:.7rem .8rem;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);text-decoration:none;transition:border-color .2s}
+.ov-class:hover,.ov-course:hover{border-color:var(--quantum)}
+.ov-day{display:grid;min-width:72px;padding:.45rem .6rem;border-radius:8px;border-left:3px solid var(--green);background:rgba(57,217,138,.08)}
+.ov-class.b .ov-day{border-color:var(--quantum);background:rgba(91,140,255,.08)} .ov-class.p .ov-day{border-color:var(--purple);background:rgba(167,139,250,.08)}
+.ov-day b{font:700 .85rem var(--f-display);color:var(--green)} .ov-class.b .ov-day b{color:var(--quantum)} .ov-class.p .ov-day b{color:var(--purple)} .ov-day small{font-size:.72rem;color:var(--muted)}
+.ov-what{display:grid;gap:.15rem;flex:1;min-width:0}
+.ov-course .bar{height:6px;margin-top:.3rem} .ov-course.b .bar i{--blade:var(--quantum)} .ov-course.p .bar i{--blade:var(--purple)}
+.ov-pct{color:var(--green)} .ov-course.b .ov-pct{color:var(--quantum)} .ov-course.p .ov-pct{color:var(--purple)}
+.ov-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.2rem;align-items:center;border-left:3px solid var(--amber)}
+.ov-chal-row{display:flex;gap:.8rem;align-items:center;margin-top:.6rem;flex-wrap:wrap}.ov-chal-row>span:nth-child(2){display:grid;flex:1;min-width:160px}
+.ov-timer{display:grid;padding:.4rem .7rem;border:1px solid var(--border);border-radius:10px}.ov-timer b{font:700 1rem var(--f-mono)}
+.ov-place{display:flex;align-items:center;gap:.8rem;justify-content:space-between;border-left:1px solid var(--glass-line);padding-left:1.2rem;color:var(--text);text-decoration:none;flex-wrap:wrap}
+.ov-place>span:first-child{display:grid;gap:.2rem;flex:1 1 140px}.ov-pr{display:grid;justify-items:center;gap:.2rem}.ov-pr small{font-size:.7rem;color:var(--muted)}
+@media (max-width:1100px){.ov-stats{grid-template-columns:repeat(3,1fr)}.ov-stat.hero{grid-column:span 3}.ov-chart{grid-template-columns:1fr}.ov-bars{border:0;padding:0}.ov-acts{grid-template-columns:1fr 1fr}.ov-foot{grid-template-columns:1fr}.ov-place{border-left:0;padding-left:0}}
+@media (max-width:720px){.ov-delta{position:static!important;margin-left:auto;align-self:flex-end}.ov-stats{grid-template-columns:1fr 1fr}.ov-stat.hero{grid-column:span 2}.ov-two{grid-template-columns:1fr}.ov-sum{flex-direction:column;text-align:center}.ov-acts{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="academy-game.css">
+<link rel="stylesheet" href="academy-lms.css">
+<link rel="stylesheet" href="course-ui.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39D98A"/><stop offset=".5" stop-color="#22C3B5"/><stop offset="1" stop-color="#3B82F6"/></linearGradient></defs>
+  <symbol id="logo-mark" viewBox="0 0 64 64">
+    <path d="M32 3l25 14.5v29L32 61 7 46.5v-29z" fill="#0B1628" stroke="url(#lg)" stroke-width="3"/>
+    <path d="M32 11l18 10.4v21.2L32 53 14 42.6V21.4z" fill="none" stroke="url(#lg)" stroke-width="1" opacity=".45"/>
+    <path d="M20 20l12 13 12-13" fill="none" stroke="url(#lg)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M32 33v15" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="20" cy="20" r="2.6" fill="#FFB000"/><circle cx="44" cy="20" r="2.6" fill="#2EE6A6"/><circle cx="32" cy="48" r="2.6" fill="#4C7DFF"/>
+  </symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c1 3 5 5 5 10a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5 1-8.5z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+</svg>
+
+<div id="gate" class="gate" hidden>
+  <svg style="width:64px;height:64px"><use href="#logo-mark"/></svg>
+  <h1>Log in to enter the <span class="grad-text">Academy</span></h1>
+  <p class="note" id="gateMsg">Your session was not found in this browser.</p>
+  <a class="btn btn-primary" href="index.html">Go to the website and log in</a>
+</div>
+
+<div id="app" hidden>
+<header class="app">
+  <div class="hwrap">
+    <a class="logo" href="#/academy/dashboard" aria-label="Student Academy home"><svg><use href="#logo-mark"/></svg><b>YOJO</b></a>
+    <nav class="maintabs" aria-label="Main">
+      <a href="#/academy/dashboard" data-main="academy">Cyber Command<small>Base</small></a>
+      <a href="#/lms" data-main="lms">Training Grid<small>LMS</small></a>
+      <a href="#/courses" data-main="courses">Cyber Arsenal<small>Courses</small></a>
+    </nav>
+    <div class="hright">
+      <span class="stat-chip xp" title="XP"><svg class="i"><use href="#i-bolt"/></svg><span id="hXp">0</span></span>
+      <span class="stat-chip st" title="Streak (days)"><svg class="i"><use href="#i-flame"/></svg><span id="hSt">0</span></span>
+      <div class="rel">
+        <button class="iconbtn" id="bellBtn" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-bell"/></svg><span class="badge" id="bellCount" hidden></span></button>
+        <div class="pop" id="bellPop" hidden></div>
+      </div>
+      <div class="rel">
+        <button class="avatar" id="avBtn" aria-haspopup="true" aria-expanded="false" aria-label="Account menu"></button>
+        <div class="pop" id="avPop" hidden style="width:260px"></div>
+      </div>
+    </div>
+  </div>
+</header>
+<nav class="subnav" id="subnav" aria-label="Academy sections"></nav>
+<main id="view" tabindex="-1"></main>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="yojo-api.js"></script>
+<script src="academy-live.js"></script><script src="demo-banner.js" data-page="academy"></script>
+<script src="trainer-data.js"></script>
+<script src="course-ui.js"></script>
+<script src="academy-lms.js"></script>
+<script>
+/* =====================================================================
+   Yojo Cyber Academy: Student main page (Academy | LMS | Courses)
+   Spec: Design Document v1.3 pages 07, 07A, 07B, 08.
+   DEMO: reads the same browser data as login.html (localStorage).
+   A real build loads all of this from the server for the signed-in user.
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const DB_KEY = 'yojo_demo_db_v1', SHARED_KEY = 'yojo_demo_shared_session';
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; $('#toasts').appendChild(t); setTimeout(() => t.remove(), 3500); }
+const PATHS = { Offensive: 'Offensive (Red Team)', Defensive: 'Defensive (Blue Team)', GRC: 'GRC (Green Team)', Foundations: 'Cyber Foundations' };
+const FACTIONS = { Offensive: 'Red Team Unit', Defensive: 'Blue Team Shield', GRC: 'GRC Compliance Corps', Foundations: 'Cyber Cadets' };
+const FCOL = { Offensive: '#FF2E2E', Defensive: '#2E8BFF', GRC: '#2EFF6A', Foundations: '#B14EFF' };
+const RANKS = [['Rookie', 0], ['Packet Scout', 250], ['Cyber Apprentice', 750], ['Security Operative', 1750], ['Threat Hunter', 3500], ['Yojo Cyber Elite', 7000]];
+const MISSIONS = [  // Mission 1 (INT-01) is rendered by academy-mission1.js
+].map(([id, cat, name, desc, xp, lvl]) => ({ id, cat, name, desc, xp, lvl }));
+const PEERS = [['Meera', 960, 4200, 'ABC Institute'], ['Arjun K', 820, 3900, 'Yojo Solutions'], ['Kiran', 790, 3500, 'XYZ College of Engineering'], ['Neha P', 740, 3100, 'Yojo Solutions'],
+  ['Sai', 705, 2800, 'ABC Institute'], ['Dev', 660, 2600, 'Yojo Solutions'], ['Anil', 288, 900, 'XYZ College of Engineering'], ['Pooja', 250, 760, 'ABC Institute'], ['Rahul', 231, 640, 'Yojo Solutions']];
+const SCROLLS = [
+  ['Reading SIEM alerts like a pro', 'Riya Sharma', 6, 482, 3120, 41, 'Start with the alert queue. Each alert has a severity, a source and a time. Before you act, ask three questions: what happened, where, and is it still happening?|Severity tells you where to look first, not what to believe. A critical alert from a noisy rule can matter less than a medium alert from a rule that almost never fires.|Write down every alert you close and why. After a week you will see the same patterns again and again, and your triage time will drop by half.'],
+  ['A risk register in 20 minutes', 'Sai Varma', 4, 315, 2290, 22, 'List assets, threats and impact on one sheet. Score each risk as likelihood times impact, then pick one treatment per row.|Do not chase perfect numbers. A simple 1 to 5 scale that everyone understands beats a clever formula nobody trusts.|Review the register every month. Risks move, and the register is only useful if it moves with them.'],
+  ['Broken Login, step by step', 'Arjun K', 7, 274, 1985, 35, 'I built a vulnerable login, broke it with a single quote and then fixed it with parameterised queries.|The attack worked because the app glued user input straight into the SQL text. The fix keeps the query and the data apart, so input can never become code.|Run the lab twice: once to break it, once to explain the fix out loud. The second run is where the learning happens.'],
+  ['My first week in the SOC', 'Neha Pillai', 3, 198, 1640, 18, 'Nobody expects you to know everything. Write down every alert you close and why. That notebook became my best teacher.|Ask the senior analyst one question a day. Pick the question that would have saved you the most time.|By Friday I could triage the common alerts alone, and I knew which ones to escalate.'],
+  ['Five Linux commands I use daily', 'Dev Rao', 5, 226, 1872, 27, 'grep, awk, ss, journalctl and find. Here is how each one saves me time in a lab.|grep and awk turn a huge log into the ten lines you care about. ss shows what is listening. journalctl reads system logs by time. find locates the file the attacker dropped.|Learn one flag a day for each command and you will be faster than any GUI.'],
+  ['Phishing headers decoded', 'Meera Iyer', 6, 401, 2754, 30, 'Every email carries a trail of Received headers. Read them bottom to top to see the real path the mail took.|Check SPF, DKIM and DMARC results first. A fail on all three is a strong sign the sender is forged.|Then compare the From address with the Return-Path. A mismatch is not proof, but it is a reason to look closer.'],
+  ['ISO 27001 controls without the jargon', 'Kiran Rao', 8, 167, 1310, 12, 'Annex A lists 93 controls. You do not need to memorise them; you need to know what each one protects.|Group them into people, process and technology. Most audit questions ask one thing: can you show evidence that the control works?|Start with access control and logging. Those two areas produce the most findings.'],
+  ['How I passed my first CTF', 'Pooja Nair', 5, 289, 2105, 25, 'I failed my first two CTFs. On the third I picked one category, web, and ignored the rest.|I read every write-up from past events in that category before the day. On the day I solved four challenges.|Pick one lane, prepare deeply, and the rest will follow in later events.']
+].map(([t, a, m, likes, views, comments, body], i) => ({ id: 'b' + i, t, a, m, likes, views, comments, body: body.split('|'), at: new Date(Date.now() - (i * 3 + 1) * 864e5) }));
+
+/* ---------- load user ---------- */
+let db = store.get(DB_KEY, null);
+const sess = store.get(SHARED_KEY, null);
+let me = db && sess && db.users.find(u => u.email === sess.email && u.role === 'student');
+function saveDb() { const fresh = store.get(DB_KEY, db); const i = fresh.users.findIndex(u => u.email === me.email); if (i >= 0) fresh.users[i] = me; db = fresh; store.set(DB_KEY, db); }
+function initStats(u) {
+  if (u.stats) return;
+  const seeded = { 'riya.sharma@students.yojo.demo': { xp: 1240, weekXp: 310, streak: 5, longest: 12, freezes: 1, cleared: ['DEF-01', 'DEF-02', 'DEF-04', 'OFF-01', 'OFF-02', 'OFF-05', 'GRC-01', 'GRC-02', 'GRC-04', 'DEF-05', 'OFF-03', 'GRC-05'], progress: { 'DEF-03': 60 }, plan: 'free' },
+    'arjun.k@students.yojo.demo': { xp: 2100, weekXp: 420, streak: 9, longest: 15, freezes: 2, cleared: ['OFF-01', 'OFF-02', 'OFF-03', 'OFF-04', 'DEF-01'], progress: { 'OFF-05': 40 }, plan: 'paid', batch: 'SOC-B7' } };
+  u.stats = seeded[u.email] || { xp: 0, weekXp: 0, streak: 0, longest: 0, freezes: 1, cleared: [], progress: {}, plan: 'free' };
+  u.stats.days = u.stats.days || Array.from({ length: 28 }, (_, i) => i >= 28 - u.stats.streak || (u.stats.xp > 0 && (i * 7) % 5 === 1));
+  u.notifs = u.notifs || defaultNotifs(u);
+  u.scrolls = u.scrolls || [];
+  u.showOnBoard = u.showOnBoard !== false;
+}
+// streak rules: the streak only grows on a day the agent earns XP from a lab or a daily patch.
+// A missed day breaks it, unless the agent agrees to give up 10% of their XP to keep it.
+function dayKey(d) { return d.toISOString().slice(0, 10); }
+function streakInit(s) { if (!s.lastActive) s.lastActive = s.streak ? dayKey(new Date(Date.now() - (s.days && s.days[27] ? 0 : 864e5))) : null; }
+function streakMissed(s) { if (!s.streak || !s.lastActive || s.streakChoice === dayKey(new Date())) return 0; const gap = Math.round((new Date(dayKey(new Date())) - new Date(s.lastActive)) / 864e5); return gap > 1 ? gap - 1 : 0; }
+function earnStreak() { const s = me.stats, t = dayKey(new Date()); if (s.lastActive === t) return; s.lastActive = t; s.days[27] = true; s.streak += 1; s.longest = Math.max(s.longest, s.streak); toast(`Streak: ${s.streak} ${s.streak === 1 ? 'day' : 'days'} 🔥`); }
+function streakCheck() {
+  const s = me.stats; streakInit(s); const miss = streakMissed(s); if (!miss) return;
+  const cost = Math.round(s.xp * 0.1);
+  const ov = modal(`<h2>🔥 You missed your streak</h2><p class="note">You were away for ${miss} day${miss === 1 ? '' : 's'}, so your ${s.streak}-day streak has broken.</p>
+    <div class="list" style="margin:.8rem 0"><div class="item"><span><b>Keep my ${s.streak}-day streak</b><br><span class="note">Give up 10% of your XP: ${s.xp.toLocaleString('en-IN')} → ${(s.xp - cost).toLocaleString('en-IN')} XP (−${cost})</span></span><button class="btn btn-amber btn-sm" id="stKeep">Keep streak (−${cost} XP)</button></div>
+    <div class="item"><span><b>Start again</b><br><span class="note">Keep all your XP. The streak goes back to 0.</span></span><button class="btn btn-sm" id="stReset">Reset streak</button></div></div>
+    <p class="note">Either way, the streak moves up only on a day you earn XP from a lab or a daily patch.</p>`);
+  const done = () => { s.streakChoice = dayKey(new Date()); saveDb(); ov.remove(); route(); };
+  $('#stKeep', ov).addEventListener('click', () => { s.xp -= cost; s.lastActive = dayKey(new Date(Date.now() - 864e5)); toast(`Streak kept. −${cost} XP`); done(); });
+  $('#stReset', ov).addEventListener('click', () => { s.streak = 0; s.lastActive = null; s.days = s.days.map(() => false); toast('Streak reset to 0'); done(); });
+  ov.addEventListener('click', e => { if (e.target === ov) e.stopImmediatePropagation(); }, true);
+}
+function defaultNotifs(u) {
+  const n = (u.profile.name || 'there').split(' ')[0];
+  const list = [
+    { id: 'n1', k: 'important', t: 'Quiz moved: Fri 10 Oct, 6:30 PM', b: 'Batch quiz 3 moved to Friday 10 Oct, 6:30 PM.', from: 'Yojo Solutions Admin (Content)', at: 'Today', read: false, pinned: true },
+    { id: 'n2', k: 'message', t: 'Message from Admin', b: 'Welcome to the Academy! Start with a free lab to earn your first XP.', from: 'Yojo Solutions Admin (Support)', at: '2h', read: false },
+    { id: 'n3', k: 'wish', t: `Happy learning, ${n}!`, b: 'Wishing you a great journey ahead. Team Yojo.', from: 'Team Yojo', at: '5h', read: false },
+    { id: 'n4', k: 'holiday', t: 'Holiday: no classes Fri 02 Oct', b: 'Gandhi Jayanti. Classes resume Monday.', from: 'Yojo Solutions Admin (Platform)', at: '1d', read: true },
+    { id: 'n5', k: 'academy', t: 'New labs added', b: '3 new defensive missions are live.', from: 'System', at: '3d', read: true }
+  ];
+  if (u.stats && u.stats.plan === 'paid') list.splice(1, 0, { id: 'n6', k: 'dues', t: 'Fee reminder: instalment 2 of 3', b: 'Instalment 2 of 3 is due on 15 Oct. Pay from Courses > Plans.', from: 'Yojo Solutions Admin (Payment)', at: 'Today', read: false, pinned: true });
+  return list;
+}
+function insignia(rank) {
+  const n = Math.max(1, RANKS.findIndex(r => r[0] === rank) + 1);
+  return `<svg class="insignia" viewBox="0 0 40 40" style="width:22px;height:22px" aria-hidden="true"><path d="M20 2l16 9v18l-16 9-16-9V11z" fill="#0B1328" stroke="#FFC93C" stroke-width="2"/>${Array.from({ length: Math.min(n, 4) }, (_, i) => `<path d="M11 ${26 - i * 5}l9-5 9 5" fill="none" stroke="#FFC93C" stroke-width="2.4" stroke-linecap="round"/>`).join('')}${n > 4 ? '<circle cx="20" cy="10" r="2.5" fill="#FF2E63"/>' : ''}</svg>`;
+}
+function emblem(cat) {
+  const c = FCOL[cat] || '#00F0FF';
+  const glyph = { Offensive: '<path d="M30 92L86 20M86 20l-4 16M86 20l-16 4M38 96l-12-12" stroke-width="6"/>', Defensive: '<path d="M60 22l30 12v22c0 20-14 34-30 40-16-6-30-20-30-40V34z" stroke-width="5"/><circle cx="60" cy="56" r="10" stroke-width="4"/>',
+    GRC: '<rect x="34" y="26" width="52" height="66" rx="4" stroke-width="5"/><path d="M44 44h32M44 58h32M44 72h20" stroke-width="5"/>', Foundations: '<path d="M60 20c14 10 18 30 10 50H50c-8-20-4-40 10-50zM50 70l-8 16M70 70l8 16" stroke-width="5"/>' }[cat];
+  return `<svg class="faction-emblem" viewBox="0 0 120 120" aria-label="${esc(FACTIONS[cat])} emblem"><circle cx="60" cy="60" r="56" fill="none" stroke="${c}" stroke-opacity=".35" stroke-width="2" stroke-dasharray="6 6"><animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="24s" repeatCount="indefinite"/></circle><circle cx="60" cy="60" r="46" fill="${c}" fill-opacity=".08" stroke="${c}" stroke-width="2"/><g fill="none" stroke="${c}" stroke-linecap="round" stroke-linejoin="round">${glyph}</g></svg>`;
+}
+function rankOf(xp) { let r = RANKS[0], next = null; for (let i = 0; i < RANKS.length; i++) if (xp >= RANKS[i][1]) { r = RANKS[i]; next = RANKS[i + 1] || null; } return { name: r[0], next }; }
+const first = () => (me.profile.name || 'Learner').split(' ')[0];
+const path = () => me.category || 'Foundations';
+
+/* ---------- header ---------- */
+/* ---------- link to the trainer portal (same demo server as trainer.html) ---------- */
+function trainerLink() { try { return window.YojoBridge && me ? YojoBridge.link(me.email, me.profile.name) : null; } catch { return null; } }
+function syncTrainerNotes() {
+  const L = trainerLink(); if (!L) return false;
+  me.trainerSeen = me.trainerSeen || []; me.notifs = me.notifs || []; let added = false;
+  YojoBridge.notes(L.sid).slice().reverse().forEach(n => { if (me.trainerSeen.includes(n.id)) return; me.trainerSeen.push(n.id); added = true;
+    me.notifs.unshift({ id: 't-' + n.id, k: 'message', t: n.kind, b: n.text, from: L.trainer ? `Trainer ${L.trainer.name}` : 'Your trainer', at: new Date(n.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }), read: false }); });
+  if (added) saveDb(); return added;
+}
+// another tab (the trainer portal) changed the shared data: refresh the bell and the open LMS page
+addEventListener('storage', e => { if (e.key !== 'yojo_trainer_demo_v2' || !me) return; syncTrainerNotes(); renderHeader(); if (/^#\/lms\//.test(location.hash) && !document.querySelector('.overlay') && typeof rerender === 'function') rerender(); });
+function renderHeader() {
+  syncTrainerNotes();
+  $('#hXp').textContent = me.stats.xp.toLocaleString('en-IN'); $('#hSt').textContent = me.stats.streak + (me.stats.streak === 1 ? ' day' : ' days');
+  $('#avBtn').textContent = first()[0].toUpperCase();
+  const unread = me.notifs.filter(n => !n.read).length;
+  $('#bellCount').hidden = !unread; $('#bellCount').textContent = unread > 9 ? '9+' : unread;
+  $('#bellBtn').setAttribute('aria-label', `Notifications, ${unread} unread`);
+}
+function bellPanel() {
+  const list = [...me.notifs].sort((a, b) => (b.pinned && !b.read) - (a.pinned && !a.read)).slice(0, 8);
+  $('#bellPop').innerHTML = `<div class="row" style="margin-bottom:.5rem"><b>Notifications</b><button class="btn btn-sm" id="markAll">Mark all read</button></div>
+    <div class="list">${list.map(n => `<div class="notif k-${n.k} ${n.read ? '' : 'unread'}" data-n="${n.id}" tabindex="0" role="button"><div class="row"><b style="font-size:.88rem">${esc(n.t)}</b><span class="note">${esc(n.at)}</span></div>${n.k === 'important' || n.k === 'dues' ? '<span class="chip a" style="justify-self:start">Important</span>' : ''}<span class="note">${esc(n.b)}</span></div>`).join('')}</div>`;
+  $('#markAll').addEventListener('click', () => { me.notifs.forEach(n => n.read = true); saveDb(); renderHeader(); bellPanel(); });
+  $$('[data-n]', $('#bellPop')).forEach(el => { const open = () => openNotif(el.dataset.n); el.addEventListener('click', open); el.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); });
+}
+function openNotif(id) {
+  const n = me.notifs.find(x => x.id === id); n.read = true; saveDb(); renderHeader(); closePops();
+  modal(`<span class="chip ${n.k === 'important' || n.k === 'dues' ? 'a' : 'b'}" style="justify-self:start">${n.k === 'important' || n.k === 'dues' ? 'Important' : esc(n.k)}</span><h2>${esc(n.t)}</h2><p class="note">From: ${esc(n.from)} · ${esc(n.at)}</p><p>${esc(n.b)}</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn btn-primary btn-sm" data-close>Got it</button><a class="btn btn-sm" href="mailto:support@yojo.demo">Contact support</a></div>
+    <p class="note">Broadcasts are one-way. Reply through LMS messages or WhatsApp.</p>`);
+}
+function closePops() { ['bellPop', 'avPop'].forEach(id => $('#' + id).hidden = true); $('#bellBtn').setAttribute('aria-expanded', 'false'); $('#avBtn').setAttribute('aria-expanded', 'false'); }
+$('#bellBtn').addEventListener('click', e => { e.stopPropagation(); const open = $('#bellPop').hidden; closePops(); if (open) { bellPanel(); $('#bellPop').hidden = false; $('#bellBtn').setAttribute('aria-expanded', 'true'); } });
+$('#avBtn').addEventListener('click', e => {
+  e.stopPropagation(); const open = $('#avPop').hidden; closePops(); if (!open) return;
+  $('#avPop').innerHTML = `<b>${esc(me.profile.name)}</b><p class="note">${esc(me.email)}</p><p class="note">${esc(me.id || '')} · ${me.stats.plan === 'paid' ? 'Paid plan' : 'Free plan'}</p>
+    <div class="list" style="margin-top:.7rem"><button class="btn btn-sm" id="avResume">My resume</button><button class="btn btn-sm" id="avOut"><svg class="i"><use href="#i-out"/></svg>Log out</button></div>`;
+  $('#avPop').hidden = false; $('#avBtn').setAttribute('aria-expanded', 'true');
+  $('#avResume').addEventListener('click', () => { closePops(); showResume(); });
+  $('#avOut').addEventListener('click', logout);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.pop')) closePops(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); const o = $('.overlay'); if (o) o.remove(); } });
+function logout() { store.del(SHARED_KEY); try { sessionStorage.removeItem('yojo_demo_session'); } catch {} location.href = 'index.html'; }
+function modal(html) {
+  const ov = document.createElement('div'); ov.className = 'overlay'; ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(ov); ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-close]')) ov.remove(); });
+  setTimeout(() => ($('button,input,a', ov) || ov).focus(), 30); return ov;
+}
+
+/* ---------- routing ---------- */
+const ACADEMY_TABS = [['dashboard', 'SOC Console · Dashboard'], ['missions', 'Incident Response · Missions'], ['leaderboard', 'Hunter Rankings · Leaderboard'], ['lore-vault', 'Intel']];
+function route() {
+  const h = location.hash.replace(/^#\/?/, '') || 'academy/dashboard';
+  const [main, sub, arg] = h.split('/');
+  $$('[data-main]').forEach(a => a.dataset.main === main ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+  const sn = $('#subnav');
+  if (main === 'academy') {
+    sn.hidden = false;
+    sn.innerHTML = `<span class="crumb">Cyber Command &gt;</span>` + ACADEMY_TABS.map(([k, l]) => `<a href="#/academy/${k}" ${k === (sub || 'dashboard') ? 'aria-current="page"' : ''}>${l}</a>`).join('');
+    if (sub === 'daily-ops') { location.hash = '#/academy/dashboard'; return; }  // Daily Patches now live on the dashboard
+    ({ dashboard: vDashboard, missions: vMissions, leaderboard: vLeaderboard, 'lore-vault': () => vLore(arg), mission: () => window.M1 ? ({ recon: M2, fingerprint: M3, information: M4, domain: M5, subdomains: M6, endpoints: M7, directory: M8, metadata: M9 }[arg] || M1).view() : 0 }[sub || 'dashboard'] || vDashboard)();
+  } else if (main === 'lms') { sn.hidden = true; vLms(sub); }
+  else if (main === 'courses') { sn.hidden = true; vCourses(sub); }
+  else { location.hash = '#/academy/dashboard'; return; }
+  renderHeader(); scrollTo(0, 0);
+}
+addEventListener('hashchange', route);
+
+/* ---------- Academy: Dashboard (Command Center) ---------- */
+function vDashboard() {
+  const s = me.stats, r = rankOf(s.xp), cat = path();
+  const nextXp = r.next ? r.next[1] : s.xp, pct = r.next ? Math.round(100 * s.xp / nextXp) : 100;
+  const cont = Object.keys(s.progress)[0] ? MISSIONS.find(m => m.id === Object.keys(s.progress)[0]) : MISSIONS.find(m => m.cat === (me.category || 'Defensive') && !s.cleared.includes(m.id));
+  const scores = me.scores || { Offensive: 0, Defensive: 0, GRC: 0 };
+  const recent = s.cleared.slice(-3).reverse().map(id => MISSIONS.find(m => m.id === id)).filter(Boolean);
+  const badges = [['🛡️', s.cleared.some(x => x.startsWith('DEF')), 'Star-Spangled Shield: first defensive op'], ['⚔️', s.cleared.some(x => x.startsWith('OFF')), 'Blade Master: first offensive op'], ['📜', s.cleared.some(x => x.startsWith('GRC')), 'Holocron Keeper: first GRC op'],
+    ['🔥', s.longest >= 7, 'Infinity Streak: 7-day streak'], ['⚡', s.xp >= 1000, 'Thunder Strike: 1,000 XP'], ['🧭', !!me.category, 'Pathfinder: faction chosen'],
+    ['🏆', false, 'Galactic Champion: win a weekly league'], ['📚', me.scrolls.some(x => x.status === 'live'), 'Lorekeeper: 3 live scrolls'], ['🎯', s.cleared.length >= 10, 'Sharpshooter: 10 ops cleared'],
+    ['🧪', false, 'Mad Scientist: clear a premium lab'], ['🌌', false, 'Hyperspace: 30-day streak'], ['👑', false, 'Elite Crown: reach Yojo Cyber Elite']];
+  $('#view').innerHTML = `
+  <div class="grid g12">
+    <section class="card s12 hero" aria-label="Welcome" style="--faction-glow:${FCOL[cat]}55;--faction-col:${FCOL[cat]}">
+      <div class="prof"><div class="av">${esc(first()[0])}</div><div>
+        <span class="callsign">AGENT // ${esc((me.id || 'RECRUIT').toUpperCase())} // ${esc(FACTIONS[cat].toUpperCase())}</span>
+        <h1>Welcome back, ${esc(first())}</h1>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.45rem;align-items:center"><span class="pathbadge ${cat === 'Foundations' ? 'GRC' : cat}" id="pathBadge">Your path: ${esc(PATHS[cat])} · ${esc(FACTIONS[cat])}</span><span class="chip b" style="display:inline-flex;align-items:center;gap:.4rem">${insignia(r.name)}Rank: ${esc(r.name)}</span><span class="chip ${s.plan === 'paid' ? 'g' : 'a'}">${s.plan === 'paid' ? 'Paid plan' : 'Free plan'}</span>${me.provisional ? '<span class="chip a">Provisional result</span>' : ''}</div>
+      </div></div>
+      <div style="min-width:min(320px,100%);flex:1;max-width:420px">
+        <div class="row note"><span>${s.xp.toLocaleString('en-IN')} XP</span><span>${r.next ? `${nextXp.toLocaleString('en-IN')} XP to ${r.next[0]}` : 'Top rank'}</span></div>
+        <div class="bar" style="margin:.35rem 0 .8rem"><i style="width:${pct}%"></i></div>
+        ${cont ? `<a class="btn btn-primary" href="#/academy/missions" data-open-mission="${cont.id}">▶ Continue mission: ${esc(cont.name)}</a>` : ''}
+      </div>
+      ${emblem(cat)}
+    </section>
+    <section class="s12 tiles" aria-label="Stats">
+      <div class="tile"><span class="note">⚡ Total XP</span><b>${s.xp.toLocaleString('en-IN')}</b></div>
+      <div class="tile"><span class="note">🔥 Win streak</span><b>${s.streak} ${s.streak === 1 ? 'day' : 'days'}</b></div>
+      <div class="tile"><span class="note">🎯 Free ops cleared</span><b>${s.cleared.length} / 15</b></div>
+      <div class="tile ${s.plan === 'paid' ? '' : 'locked'}"><span class="note">🏆 Campaigns won</span><b>${s.plan === 'paid' ? 1 : 0}</b>${s.plan === 'paid' ? '' : '<span class="lock chip a"><svg class="i"><use href="#i-lock"/></svg>Paid plan only</span>'}</div>
+    </section>
+    <section class="card s6"><h3>Active operation</h3>${cont ? `<div class="item"><div><span class="chip ${catChip(cont.cat)}">${cont.id}</span> <b>${esc(cont.name)}</b><p class="note">${s.progress[cont.id] ? `${s.progress[cont.id]}% · resume at task ${Math.ceil(s.progress[cont.id] / 15)}` : 'Not started'}</p><div class="bar" style="margin-top:.4rem"><i style="width:${s.progress[cont.id] || 0}%"></i></div></div><button class="btn btn-sm btn-primary" data-open-mission="${cont.id}">${s.progress[cont.id] ? 'Resume' : 'Start'}</button></div>` : '<p class="note">All free labs cleared. Go Premium for more.</p>'}</section>
+    <section class="card s6"><h3>Daily patches <span class="note">Reset at midnight IST</span></h3>${questList(true)}</section>
+    <section class="card s12"><h3>Weekly field ops <span class="note">Ends in ${endsIn()}</span></h3>${fieldOps()}</section>
+    <section class="card s4"><h3>Streak · last 28 days</h3><div class="cal">${s.days.map(d => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div><p class="note" style="margin-top:.6rem">Current ${s.streak} · Longest ${s.longest} · ${s.freezes} freeze</p></section>
+    <section class="card s4"><h3>Power levels</h3>${['Offensive', 'Defensive', 'GRC'].map(k => `<div class="meter"><div class="row note"><span>${k}${me.category === k ? ' · primary' : ''}</span><span>${scores[k] || 0}</span></div><div class="bar"><i class="${k}" style="width:${scores[k] || 0}%"></i></div></div>`).join('')}</section>
+    <section class="card s4"><h3>Weekly league</h3><div style="display:grid;gap:.3rem"><b style="font:700 1.4rem var(--f-display);color:var(--amber)">${s.weekXp ? '🥇 Gold #' + myWeekRank() : '🥉 Bronze'}</b><span class="note">${s.weekXp} XP this week · Ends in ${endsIn()}</span><a class="btn btn-sm" href="#/academy/leaderboard" style="justify-self:start;margin-top:.4rem">Open leaderboard</a></div></section>
+    <section class="card s6"><h3>Trophy case <span class="note">${badges.filter(b => b[1]).length} of ${badges.length} earned</span></h3><div class="badges">${badges.map(([e, on, t]) => `<span class="${on ? '' : 'off'}" title="${esc(t)}${on ? '' : ' (locked)'}" aria-label="${esc(t)}">${e}</span>`).join('')}</div></section>
+    <section class="card s6"><h3>Recent victories</h3>${recent.length ? `<div class="list">${recent.map(m => `<div class="item"><span><span class="chip ${catChip(m.cat)}">${m.id}</span> ${esc(m.name)}</span><span class="mono" style="color:var(--amber)">+${m.xp} XP</span></div>`).join('')}</div>` : '<p class="note">No victories yet. Your first operation awaits, recruit.</p>'}</section>
+    <section class="card s12"><h3>Campaigns in the Cyber Arsenal <a class="note" href="#/courses">View all courses &gt;</a></h3><div class="courses">${myCatalog().slice(0, 4).map(courseCard).join('')}</div>
+      ${s.plan === 'paid' ? '' : `<div class="item" style="margin-top:1rem"><span><b>Go Premium</b> <span class="note">Premium labs, courses and certificates</span></span><a class="btn btn-amber btn-sm" href="#/courses">See plans</a></div>`}</section>
+  </div>`;
+  bindMissionOpeners(); bindQuests();
+}
+const catChip = c => c === 'Offensive' ? 'r' : c === 'Defensive' ? 'b' : c === 'GRC' ? 'g' : 'p';
+// dashboard tiles: same course records and access rules as the Courses page
+function courseCard(c) {
+  const col = { 'Offensive Security and Ethical Hacking': '248,113,113', 'Defensive Security and SOC': '91,140,255', 'Governance, Risk and Compliance (GRC)': '57,217,138', 'Cybersecurity Fundamentals': '167,139,250' }[c.category] || '91,140,255';
+  const tag = c.state === 'enrolled' ? '<span class="chip g" style="justify-self:start">Enrolled</span>' : c.access === 'free' ? '<span class="chip g" style="justify-self:start">Free</span>' : '<span class="chip a" style="justify-self:start"><svg class="i"><use href="#i-lock"/></svg>Needs enrolment</span>';
+  return `<a class="course" href="#/courses/${encodeURIComponent(c.slug)}" style="text-decoration:none;color:inherit"><div class="cv" style="background:radial-gradient(circle at 80% 30%,rgba(${col},.55),transparent 60%),repeating-linear-gradient(120deg,rgba(${col},.12) 0 2px,transparent 2px 12px),linear-gradient(135deg,rgba(${col},.3),#05080F)"><span class="chip">${esc(c.category)}</span></div>
+    <div class="bd"><b>${esc(c.title)}</b><span class="note">${[c.level, c.duration, c.access === 'free' ? 'Free' : 'Paid'].filter(Boolean).map(esc).join(' · ')}</span>${tag}</div></a>`;
+}
+function myWeekRank() { return boardRows('week').findIndex(r => r.me) + 1; }
+function endsIn() { const n = new Date(), d = (7 - n.getDay()) % 7, h = 23 - n.getHours(); return `${d}d ${h}h`; }
+
+/* ---------- Missions ---------- */
+let mFilter = 'All', mSearch = '';
+function vMissions() {
+  $('#view').innerHTML = `<div class="row" style="flex-wrap:wrap;margin-bottom:.4rem"><div><h1>Incident Response</h1><p class="note">Drop into safe, isolated cyber ranges. 15 cities to save across three units.</p></div><span class="pathbadge ${path() === 'Foundations' ? 'GRC' : path()}">Your path: ${esc(PATHS[path()])}</span></div>
+    <div class="filters" role="group" aria-label="Filter missions">${['All', 'Offensive', 'Defensive', 'GRC'].map(f => `<button aria-pressed="${f === mFilter}" data-f="${f}">${f}</button>`).join('')}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:.4rem"><svg class="i"><use href="#i-search"/></svg><input id="mSearch" placeholder="Search missions" aria-label="Search missions" value="${esc(mSearch)}"></span></div>
+    <div class="missions" id="mGrid"></div>`;
+  $$('[data-f]').forEach(b => b.addEventListener('click', () => { mFilter = b.dataset.f; vMissions(); }));
+  $('#mSearch').addEventListener('input', e => { mSearch = e.target.value; drawMissions(); });
+  drawMissions();
+}
+function drawMissions() {
+  const s = me.stats, q = mSearch.toLowerCase();
+  const list = MISSIONS.filter(m => (mFilter === 'All' || m.cat === mFilter) && (!q || (m.name + m.desc + m.id).toLowerCase().includes(q)))
+    .sort((a, b) => (b.cat === me.category) - (a.cat === me.category));
+  $('#mGrid').innerHTML = list.map(m => { const done = s.cleared.includes(m.id), p = s.progress[m.id];
+    return `<div class="mission ${done ? 'cleared' : ''}" data-mid="${m.id}" data-cat="${m.cat}"><div class="row"><span class="chip ${catChip(m.cat)}">${m.id}</span>${m.cat === me.category ? '<span class="chip g">Recommended</span>' : ''}</div>
+      <b>${esc(m.name)}</b><span class="note">${esc(m.desc)}</span><div class="row note"><span>Level ${m.lvl}</span><span class="mono" style="color:var(--amber)">+${m.xp} XP</span></div>
+      ${p && !done ? `<div class="bar"><i style="width:${p}%"></i></div>` : ''}
+      <button class="btn btn-sm ${done ? '' : 'btn-primary'}" data-open-mission="${m.id}">${done ? 'Replay (0 XP)' : p ? '▶ Resume' : '▶ Deploy'}</button></div>`; }).join('') || '<p class="note">No missions match.</p>';
+  bindMissionOpeners(); if (window.M1) { M1.card(); M2.card(); M3.card(); M4.card(); M5.card(); M6.card(); M7.card(); M8.card(); M9.card(); }
+}
+function bindMissionOpeners() { $$('[data-open-mission]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openMission(b.dataset.openMission); })); }
+function openMission(id) {
+  const m = MISSIONS.find(x => x.id === id), s = me.stats, done = s.cleared.includes(id);
+  const ov = modal(`<div class="row"><span class="chip ${catChip(m.cat)}">${m.id} · ${m.cat}</span><button class="btn btn-sm" data-close>Close</button></div><h2>${esc(m.name)}</h2><p class="note">${esc(m.desc)}</p>
+    <div class="list">${['Read the briefing', 'Start the isolated lab target', 'Clear the lab objective', 'Submit your finding'].map((t, i) => `<div class="item"><span>Task ${i + 1}: ${t}</span>${done || (s.progress[id] || 0) >= (i + 1) * 25 ? '<span class="chip g">Done</span>' : ''}</div>`).join('')}</div>
+    <p class="note">Labs run in a sandbox with no internet. XP is paid once, from verified lab checkpoints. Replays give 0 XP.</p>
+    ${done ? '<span class="chip g">Cleared</span>' : `<button class="btn btn-primary" id="clearLab">Clear objective (demo) · +${m.xp} XP</button>`}`);
+  window.YojoInsight&&YojoInsight.track('lab_started',{feature:m.id,area:'Labs and cyber range'});
+  const c = $('#clearLab', ov); if (c) c.addEventListener('click', () => { window.YojoInsight&&YojoInsight.track('lab_checkpoint',{feature:m.id,area:'Labs and cyber range'}); completeMission(m); ov.remove(); });
+}
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function completeMission(m) {
+  const s = me.stats; if (s.cleared.includes(m.id)) return;
+  s.cleared.push(m.id); delete s.progress[m.id]; addXp(m.xp); window.YojoInsight&&YojoInsight.track('lab_completed',{feature:m.id,area:'Labs and cyber range'});
+  const q = questState(); q.lab = true; q.learn = true;
+  earnStreak();
+  saveDb(); toast(`Objective cleared: +${m.xp} XP`); route();
+}
+function addXp(n) { me.stats.xp += n; me.stats.weekXp += n; }
+
+/* ---------- Daily Ops ---------- */
+function questState() { me.stats.quests = me.stats.quests && me.stats.quests.day === todayKey() ? me.stats.quests : { day: todayKey(), learn: false, lab: false, read: false, paid: {} }; return me.stats.quests; }
+const QUESTS = [['learn', 'Finish 1 learning task', 40], ['lab', 'Clear 1 lab objective', 60], ['read', 'Read 1 blog in Intel', 20]];  // bounty names stay plain so they read clearly
+function questList(short) {
+  const q = questState();
+  return `<div class="list">${QUESTS.map(([k, t, xp]) => `<div class="item ${q.paid[k] ? 'done' : ''}"><span>${q[k] ? '✅' : '⬜'} ${t}</span>${q.paid[k] ? '<span class="chip g">Claimed</span>' : q[k] ? `<button class="btn btn-sm btn-primary" data-claim="${k}">Claim +${xp} XP</button>` : `<span class="mono note">+${xp} XP</span>`}</div>`).join('')}</div>${short ? '' : '<p class="note" style="margin-top:.8rem">Quests reset daily at midnight IST. Progress comes only from verified events; each reward is paid once.</p>'}`;
+}
+function bindQuests() { $$('[data-claim]').forEach(b => b.addEventListener('click', () => { const q = questState(), k = b.dataset.claim; if (q.paid[k]) return; q.paid[k] = true; addXp(QUESTS.find(x => x[0] === k)[2]); earnStreak(); saveDb(); toast('Quest reward claimed'); route(); })); }
+function fieldOps() {
+  const s = me.stats, ops = [['Clear 3 labs this week', Math.min(3, s.cleared.length), 3, 150], ['Keep a 5-day streak', Math.min(5, s.streak), 5, 100], ['Claim 10 daily patches', Math.min(10, Object.keys(questState().paid).length + 4), 10, 80]];
+  return `<div class="fops">${ops.map(([t, n, of, xp]) => `<div class="item" style="display:grid;gap:.45rem"><div class="row"><b>${t}</b><span class="mono note">${n}/${of} · +${xp} XP</span></div><div class="bar"><i style="width:${100 * n / of}%"></i></div></div>`).join('')}</div>`;
+}
+
+/* ---------- Leaderboard ---------- */
+let lbTab = 'week';
+function boardRows(tab) {
+  const mine = { name: me.showOnBoard ? `${first()} (you)` : 'Hidden learner (you)', xp: tab === 'all' ? me.stats.xp : me.stats.weekXp, inst: me.profile.institution || me.institution || '', me: true };
+  let rows = PEERS.filter(p => p[0].split(' ')[0] !== first()).map(([n, w, a, inst]) => ({ name: n, xp: tab === 'all' ? a : w, inst }));
+  if (tab === 'college') rows = rows.filter(r => r.inst === mine.inst);
+  return [...rows, mine].sort((a, b) => b.xp - a.xp);
+}
+function vLeaderboard() {
+  const rows = boardRows(lbTab), top = rows.slice(0, 3);
+  $('#view').innerHTML = `<div class="row" style="flex-wrap:wrap"><h1>Hunter Rankings</h1><label class="note" style="display:flex;gap:.4rem;align-items:center"><input type="checkbox" id="showMe" ${me.showOnBoard ? 'checked' : ''}> Show me on leaderboard</label></div>
+    <div class="filters" role="tablist" style="margin-top:.8rem">${[['week', 'This week'], ['all', 'All time'], ['college', 'My college']].map(([k, l]) => `<button role="tab" aria-pressed="${k === lbTab}" data-lb="${k}">${l}</button>`).join('')}</div>
+    <div class="card" style="margin-bottom:1rem;background:linear-gradient(135deg,rgba(255,176,0,.14),rgba(255,176,0,.02))"><div class="row"><b style="color:var(--amber)">Gold League</b><span class="note">Ends in ${endsIn()} · Top 7 promote · Bottom 5 demote</span></div></div>
+    <div class="podium2">${[[top[1], 2], [top[0], 1], [top[2], 3]].map(([r, n]) => r ? `<div class="pd pd${n} ${r.me ? 'me' : ''}"><div class="pd-av">${esc(r.name[0])}</div><div class="pd-medal">${['', '🥇', '🥈', '🥉'][n]}</div><b>${esc(r.name)}</b><span class="mono note">${r.xp.toLocaleString('en-IN')} XP</span><div class="pd-base"><span>${n}</span></div></div>` : '<div></div>').join('')}</div>
+    <div class="card"><table class="lb">${rows.map((r, i) => `<tr class="${r.me ? 'me' : ''}"><td class="mono" style="width:3rem">#${i + 1}</td><td>${esc(r.name)}</td><td class="mono" style="text-align:right">${r.xp.toLocaleString('en-IN')} XP</td></tr>`).join('')}</table>
+    <p class="note" style="margin-top:.8rem">Shows display name only (never email, payment or test data). Weekly reset Monday 00:00 IST.</p></div>`;
+  $$('[data-lb]').forEach(b => b.addEventListener('click', () => { lbTab = b.dataset.lb; vLeaderboard(); }));
+  $('#showMe').addEventListener('change', e => { me.showOnBoard = e.target.checked; saveDb(); vLeaderboard(); });
+}
+
+/* ---------- Intel: blogs by students (Medium-style reading) ---------- */
+let lvQ = '';
+const fmtK = n => n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : String(n);
+const blogDate = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+function blogState() { me.blogs = me.blogs || { liked: {}, comments: {} }; return me.blogs; }
+function allBlogs() {
+  const mine = (me.scrolls || []).filter(x => x.status === 'live').map((x, i) => ({ id: 'm' + i, t: x.t, a: me.profile.name, m: Math.max(1, Math.round((x.b || '').split(/\s+/).length / 200)), likes: 0, views: 0, comments: 0, body: (x.b || '').split(/\n+/), at: new Date() }));
+  const bs = blogState();
+  return [...mine, ...SCROLLS].map(b => ({ ...b, likes: b.likes + (bs.liked[b.id] ? 1 : 0), comments: b.comments + (bs.comments[b.id] || []).length }));
+}
+const blogStats = b => `<span class="bl-stats"><span title="Likes">👏 ${fmtK(b.likes)}</span><span title="Views">👁 ${fmtK(b.views)}</span><span title="Comments">💬 ${b.comments}</span></span>`;
+function topBlogs() {
+  return `<aside class="bl-side"><h3>Top blogs</h3><ol class="bl-top">${allBlogs().sort((a, b) => (b.likes * 3 + b.views / 10 + b.comments * 5) - (a.likes * 3 + a.views / 10 + a.comments * 5)).slice(0, 5).map((b, i) => `<li><span class="bl-n">0${i + 1}</span><a href="#/academy/lore-vault/${b.id}"><span class="bl-au"><i>${esc(b.a[0])}</i>${esc(b.a)}</span><b>${esc(b.t)}</b>${blogStats(b)}</a></li>`).join('')}</ol>
+    <div class="bl-write"><b>Share what you learned</b><p class="note">Every blog is checked by an admin before it goes live.</p><div class="row" style="justify-content:flex-start"><button class="btn btn-primary btn-sm" id="forge">Write a blog</button><button class="btn btn-sm" id="mine">My blogs (${me.scrolls.length})</button></div></div></aside>`;
+}
+function vLore(id) {
+  if (id) return readBlog(id);
+  $('#view').innerHTML = `<div class="bl-wrap"><div class="bl-main"><h1>Intel</h1><p class="note">Blogs written by fellow agents about what they learned.</p>
+      <div class="bl-search"><svg class="i"><use href="#i-search"/></svg><input id="lvQ" placeholder="Search blogs by name" aria-label="Search blogs by name" value="${esc(lvQ)}"></div>
+      <div id="lvList" class="bl-feed"></div></div>${topBlogs()}</div>`;
+  $('#lvQ').addEventListener('input', e => { lvQ = e.target.value; drawLore(); });
+  $('#forge').addEventListener('click', forgeScroll); $('#mine').addEventListener('click', myScrolls);
+  drawLore();
+}
+function drawLore() {
+  const q = lvQ.trim().toLowerCase(), l = allBlogs().filter(b => !q || b.t.toLowerCase().includes(q));
+  $('#lvList').innerHTML = l.map(b => `<article class="bl-card"><a href="#/academy/lore-vault/${b.id}"><span class="bl-au"><i>${esc(b.a[0])}</i>${esc(b.a)} · ${blogDate(b.at)}</span><h2>${esc(b.t)}</h2><p class="note">${esc(b.body[0])}</p><span class="bl-meta"><span class="note">${b.m} min read</span>${blogStats(b)}</span></a></article>`).join('') || `<p class="note">No blogs match “${esc(lvQ)}”.</p>`;
+}
+function readBlog(id) {
+  const b = allBlogs().find(x => x.id === id); if (!b) { location.hash = '#/academy/lore-vault'; return; }
+  const bs = blogState(), cm = bs.comments[id] = bs.comments[id] || [];
+  const q = questState(); if (!q.read) { q.read = true; saveDb(); toast('Daily patch: blog read'); } window.YojoInsight&&YojoInsight.track('blog_read',{feature:id,area:'Lore Vault'});
+  $('#subnav').hidden = true;
+  $('#view').innerHTML = `<article class="bl-read"><a class="note bl-back" href="#/academy/lore-vault">← All blogs</a><h1>${esc(b.t)}</h1>
+    <div class="bl-by"><i>${esc(b.a[0])}</i><span><b>${esc(b.a)}</b><span class="note">${b.m} min read · ${blogDate(b.at)}</span></span></div>
+    <div class="bl-bar">${blogStats(b)}<button class="btn btn-sm ${bs.liked[id] ? '' : 'btn-primary'}" id="blLike">${bs.liked[id] ? '👏 Liked' : '👏 Like'}</button></div>
+    <div class="bl-body">${b.body.map(p => `<p>${esc(p)}</p>`).join('')}</div>
+    <section class="bl-comments"><h3>Comments (${b.comments})</h3><form id="blC" class="row"><input name="c" placeholder="Add a comment" aria-label="Add a comment" style="flex:1"><button class="btn btn-sm btn-primary">Post</button></form>
+      <div class="list" style="margin-top:.8rem">${cm.map(c => `<div class="item" style="display:grid;gap:.2rem"><b>${esc(c.by)}</b><span class="note">${esc(c.t)}</span></div>`).join('')}</div></section></article>`;
+  $('#blLike').addEventListener('click', () => { bs.liked[id] = !bs.liked[id]; saveDb(); readBlog(id); });
+  $('#blC').addEventListener('submit', e => { e.preventDefault(); const t = e.target.c.value.trim(); if (!t) return; cm.push({ by: me.profile.name, t }); saveDb(); readBlog(id); });
+}
+function forgeScroll() {
+  const ov = modal(`<div class="row"><h2>Write a blog</h2><span class="chip">Draft</span></div>
+    <form id="fs" style="display:grid;gap:.7rem" novalidate><input name="t" placeholder="Title" aria-label="Title">
+    <textarea name="b" rows="9" placeholder="Write your blog..." aria-label="Body"></textarea>
+    <label class="note" style="display:flex;gap:.5rem"><input type="checkbox" name="own"> This is my own work and has no lab flags or private data.</label><p id="fsErr" class="note" style="color:var(--red)"></p>
+    <div class="row"><button type="button" class="btn btn-sm" data-close>Cancel</button><button class="btn btn-primary btn-sm">Send for review</button></div></form>`);
+  $('#fs', ov).addEventListener('submit', e => { e.preventDefault(); const f = e.target;
+    if (!f.t.value.trim() || f.b.value.trim().length < 20) return $('#fsErr').textContent = 'Add a title and at least a few lines.';
+    if (!f.own.checked) return $('#fsErr').textContent = 'Confirm this is your own work.';
+    me.scrolls.unshift({ t: f.t.value.trim(), b: f.b.value.trim(), status: 'review', at: new Date().toLocaleString('en-IN') }); saveDb(); window.YojoInsight&&YojoInsight.track('blog_submitted',{area:'Lore Vault'}); ov.remove(); toast('Sent for review. An admin will check it.'); vLore(); });
+}
+function myScrolls() {
+  modal(`<div class="row"><h2>My blogs</h2><button class="btn btn-sm" data-close>Close</button></div>${me.scrolls.length ? `<div class="list">${me.scrolls.map(s => `<div class="item"><span><b>${esc(s.t)}</b><br><span class="note">Sent ${esc(s.at)}</span></span><span class="chip ${s.status === 'live' ? 'g' : 'a'}">${s.status === 'live' ? 'Live' : 'In review'}</span></div>`).join('')}</div>` : '<p class="note">No blogs yet. Write your first one.</p>'}`);
+}
+
+/* ---------- LMS: see academy-lms.js ---------- */
+/* ---------- Courses: Cyber Arsenal ----------
+   Course data, access and FAQs come from YojoCourses (trainer-data.js), which reads the student's plan and batch
+   from the stored records, not from this page. Lesson content is only returned by YojoCourses.lesson(). */
+function myCatalog() { try { return YojoCourses.forStudent(me.email); } catch (e) { return []; } }
+const csLink = c => '#/courses/' + encodeURIComponent(c.slug);
+function csActs(c, inDetail) {
+  const view = { label: 'View Course', href: csLink(c) };
+  if (c.state === 'enrolled') return [{ label: c.done ? 'Continue Learning' : 'Start Learning', href: csLink(c) + (inDetail ? '' : '?go=next'), cls: 'pri' }];
+  if (c.state === 'free') return inDetail ? [] : [{ label: 'Explore Free Course', href: view.href, cls: 'pri' }];
+  return (inDetail ? [] : [view]).concat(c.plan === 'paid' ? [{ label: 'Enroll Now', act: 'enrol', id: c.id, cls: inDetail ? 'pri' : 'amb' }] : [{ label: 'View Plans', act: 'plans', cls: 'amb' }]);
+}
+const csAccess = c => c.state === 'enrolled' ? 'You are enrolled in a batch that runs this course, so all its published lessons, labs and assessments are open to you.'
+  : c.state === 'free' ? `This is a free course. Every published lesson is open to you on the ${c.plan === 'paid' ? 'Paid' : 'Free'} plan.`
+  : `This course needs enrolment. ${c.plan === 'paid' ? 'Your Paid plan does not unlock it on its own: send an enrolment request and an admin adds you to a batch.' : 'On the Free plan you can read the outline and FAQs and open any preview lessons. Upgrade and enrol to unlock it.'}`;
+function lessonBtn(c, l) { return l.open ? `<button type="button" class="cx-btn sm ${l.done ? '' : 'pri'}" data-cx="lesson" data-id="${esc(c.id + '|' + l.id)}">${l.done ? 'Open again' : l.preview && c.state === 'locked' ? 'Preview' : 'Open'}</button>` : '<span class="cx-note">🔒 Locked</span>'; }
+function vCourses(slug) {
+  slug = slug ? decodeURIComponent(slug.split('?')[0]) : '';
+  const all = myCatalog(), plan = all[0] ? all[0].plan : 'free';
+  const opts = extra => Object.assign({ href: csLink, actions: csActs }, extra);
+  if (slug) {
+    const c = all.find(x => x.slug === slug);
+    if (!c) { $('#view').innerHTML = `<div class="cx"><div class="cx-empty" role="alert">This course is not available. It may be unpublished or the link may be wrong. <a class="cx-btn sm" href="#/courses">Back to courses</a></div></div>`; return; }
+    $('#view').innerHTML = `<div id="acRoot">${CourseUI.detail(c, opts({ crumbs: [['Courses', '#/courses'], [c.title]], back: ['All courses', '#/courses'], access: csAccess, lessonAction: lessonBtn, related: CourseUI.related(c, all) }))}</div>`;
+    if (/[?&]go=next/.test(location.hash)) { const n = $('#acRoot [data-cx="lesson"].pri'); if (n) n.scrollIntoView({ block: 'center' }); }
+  } else {
+    const mine = all.filter(c => c.state === 'enrolled'), others = all.filter(c => c.state !== 'enrolled'), req = me.stats.paidRequest;
+    $('#view').innerHTML = `<div id="acRoot" class="cx"><section class="ac-hero"><div><span class="eyebrow">Cyber Arsenal · Courses</span><h1>Build real cyber skills with <span class="grad-text">trainer-led campaigns</span></h1>
+        <p class="note">Your plan: <b>${plan === 'paid' ? 'Paid' : 'Free'}</b>. ${plan === 'paid' ? 'Courses open once you are enrolled in them.' : 'Free courses and preview lessons are open to you.'}</p></div></section>
+      ${mine.length ? `<section class="ac-sec"><h2>My courses <span class="note">${mine.length} enrolled</span></h2><div class="cx-grid">${mine.map(c => myCourseCard(c)).join('')}</div></section>` : plan === 'paid' ? '<section class="ac-sec"><div class="cx-empty">You are on the Paid plan but not enrolled in a course yet. Pick a course below and send an enrolment request.</div></section>' : ''}
+      <section class="ac-sec"><h2>${mine.length ? 'Explore more courses' : 'All courses'}</h2><p class="note" style="margin:-.3rem 0 .8rem">Open <b>FAQs</b> on any card for answers about that course.</p><div id="csGrid"></div></section>
+      <section class="ac-sec" id="plans"><h2>Plans</h2><div class="grid g12"><section class="card s6"><h3>Free</h3><ul class="note"><li>Free courses and preview lessons</li><li>Labs, XP, streak and leaderboard</li><li>Daily Patches and Intel</li></ul>${plan === 'paid' ? '' : '<span class="chip g">Your plan</span>'}</section>
+      <section class="card s6" style="border-color:rgba(255,176,0,.4)"><h3>Paid <span class="chip a">Premium</span></h3><ul class="note"><li>Enrol in trainer-led courses (an admin adds you to the batch)</li><li>Mentor and placement track</li><li>Certificates where a course offers one</li></ul>
+        ${plan === 'paid' ? '<span class="chip g">Your plan</span>' : req ? '<span class="chip a">Payment verification pending · admin approval</span>' : '<button class="btn btn-amber btn-sm" id="goPaid">Request paid access</button>'}<p class="note" style="margin-top:.6rem">The price is set by an admin.</p></section></div></section></div>`;
+    CourseUI.catalog($('#csGrid'), opts({ courses: others }));
+    const g = $('#goPaid'); if (g) g.addEventListener('click', () => { me.stats.paidRequest = new Date().toISOString(); saveDb(); window.YojoInsight && YojoInsight.track('checkout_started', { area: 'Courses and LMS' }); toast('Request sent. An admin approves paid access.'); vCourses(); });
+  }
+  $('#acRoot').addEventListener('click', e => {
+    const b = e.target.closest('[data-cx]'); if (!b) return;
+    if (b.dataset.cx === 'plans') { const p = $('#plans'); if (p) p.scrollIntoView({ behavior: 'smooth' }); else location.hash = '#/courses'; return; }
+    // With the Yojo API, the request goes to the Admin LMS inbox for the signed-in student (identity from the session).
+    if (b.dataset.cx === 'enrol' && window.YojoAPI && !b.dataset.demo) { const c = all.find(x => x.id === b.dataset.id); b.disabled = true;
+      YojoAPI.available().then(ok => { if (!ok) { b.disabled = false; b.dataset.demo = '1'; b.click(); delete b.dataset.demo; return; }
+        return YojoAPI.init().then(() => YojoAPI.post('/public/submissions', { type: 'course_enrolment', topic: c.title })).then(r => {
+          toast(r.duplicate ? `You already asked to enrol in this course (${r.reference}). An admin will contact you.` : `Enrolment request sent (${r.reference}). An admin will add you to a batch.`); },
+          e => toast(e && e.status === 401 ? 'Sign in again to request enrolment.' : (e && e.problem && e.problem.message) || 'Could not send the request. Try again.')); }).finally(() => { b.disabled = false; }); return; }
+    if (b.dataset.cx === 'enrol') { const c = all.find(x => x.id === b.dataset.id); try { const k = 'yojo_enquiries', list = JSON.parse(localStorage.getItem(k) || '[]');
+        if (list.some(x => x.type === 'course' && x.email === me.email && x.interest === c.title && x.status !== 'Closed')) { toast('You already asked to enrol in this course. An admin will contact you.'); return; }
+        list.push({ id: 'ENQ-' + Date.now().toString(36).toUpperCase(), type: 'course', name: me.profile && me.profile.name || me.name || me.email, email: me.email, phone: me.profile && me.profile.phone || '', interest: c.title, when: '', message: 'Enrolment request from the Student LMS (' + (plan === 'paid' ? 'Paid' : 'Free') + ' plan).', at: new Date().toISOString(), status: 'New' });
+        localStorage.setItem(k, JSON.stringify(list)); toast('Enrolment request sent. An admin will add you to a batch.'); } catch (x) { toast('Could not send the request. Try again.'); } return; }
+    if (b.dataset.cx === 'lesson') { const [cid, lid] = b.dataset.id.split('|');
+      try { const l = YojoCourses.lesson(me.email, cid, lid);
+        const ov = modal(`<div class="row"><h2>${esc(l.title)}</h2><button class="btn btn-sm" data-close>Close</button></div><p class="note">${esc(l.type)}</p>
+          ${l.url ? `<p><a class="btn btn-sm" href="${esc(l.url)}">Open ${esc(l.type.toLowerCase())}</a></p>` : ''}${l.file ? `<p>File: <b>${esc(l.file.name)}</b> (${l.file.sizeMB} MB)${l.dl ? ' · downloadable' : ''}</p><p class="note">The player opens here in the full build.</p>` : ''}
+          <button class="btn btn-primary btn-sm" id="lsDone">Mark as complete</button>`);
+        $('#lsDone').addEventListener('click', () => { try { YojoCourses.complete(me.email, cid, lid); ov.remove(); toast('Lesson marked complete.'); vCourses(slug); } catch (x) { toast(x.message); } });
+      } catch (x) { toast(x.message); } }
+  });
+}
+function myCourseCard(c) {
+  const next = c.modules.flatMap(m => m.lessons).find(l => !l.done), mods = c.modules.map(m => ({ t: m.title, done: m.lessons.length && m.lessons.every(l => l.done) }));
+  return `<article class="cx-card">${CourseUI.thumb(c)}<div class="cx-bd"><h3>${esc(c.title)}</h3>
+    <div><div class="cx-row" style="justify-content:space-between;font-size:.82rem"><span class="cx-note">${c.done} of ${c.lessonCount} lessons done</span><b>${c.pct}%</b></div><div class="cx-bar"><i style="width:${c.pct}%"></i></div></div>
+    <div class="cx-note">Completed modules: ${mods.filter(m => m.done).map(m => esc(m.t)).join(', ') || 'none yet'}</div><div class="cx-note">Pending modules: ${mods.filter(m => !m.done).map(m => esc(m.t)).join(', ') || 'none'}</div>
+    ${next ? `<div class="cx-note">Next: <b style="color:var(--cx-tx)">${esc(next.title)}</b></div>` : '<div class="cx-note">All lessons done.</div>'}</div>
+    <div class="cx-acts"><a class="cx-btn sm pri" href="${csLink(c)}?go=next">${c.done ? 'Continue Learning' : 'Start Learning'}</a><a class="cx-btn sm" href="${csLink(c)}">Curriculum</a></div>
+    <details class="cx-faqs"><summary>FAQs (${c.faqs.length})</summary>${CourseUI.faq(c.faqs)}</details></article>`;
+}
+
+/* ---------- resume (opened from Placement Mission) ---------- */
+function showResume() {
+  const p = me.profile, pr = (me.portfolio || []).filter(x => x.title);
+  const url = u => /^https?:\/\//i.test(u) ? u : 'https://' + u;
+  modal(`<div class="row"><h2>${esc(p.name)}</h2><button class="btn btn-sm" data-close>Close</button></div><p class="note">${esc(me.email)} · ${esc(p.phone || '')} · ${esc(p.city || '')}</p>
+    <div><span class="eyebrow">Career objective</span><p>${esc(p.objective || '-')}</p></div>
+    <div><span class="eyebrow">Education</span><p>${esc(p.eduLevel || '')} ${esc(p.stream || '')}, ${esc(p.institution || '')} (${esc(p.gradYear || '')})${p.cgpa ? ' · ' + esc(p.cgpa) : ''}</p></div>
+    <div><span class="eyebrow">Skills</span><p>${esc(p.skills || '-')}</p></div>
+    ${pr.length ? `<div><span class="eyebrow">Projects</span>${pr.map(x => `<div style="margin:.4rem 0"><b>${esc(x.title)}</b>${x.github ? ` · <a href="${esc(url(x.github))}" target="_blank" rel="noopener">${esc(x.github.replace(/^https?:\/\//, ''))}</a>` : ''}<p class="note" style="margin:.15rem 0">${esc(x.desc || '')}</p>${x.skills ? `<span class="note">Skills: ${esc(x.skills)}</span>` : ''}</div>`).join('')}</div>` : ''}
+    ${p.certs ? `<div><span class="eyebrow">Certifications</span><p>${esc(p.certs)}</p></div>` : ''}
+    <div><span class="eyebrow">Path</span><p>${esc(PATHS[path()])} · ${me.stats.cleared.length} labs cleared</p></div>
+    <p class="note">PDF download comes with the backend build.</p>`);
+}
+
+/* ---------- boot ---------- */
+// With the API reachable, academy-live.js decides: a signed-in student gets server data, anyone else the sign-in gate.
+// Without it (ready resolves false) the page runs on the demo data below.
+(function boot() {
+  const LIVE = window.YojoAcademyLive;
+  if (LIVE) { LIVE.ready.then(r => r === true ? liveBoot() : r === false ? demoBoot() : gate('Sign in as a student to open your Academy.'), () => demoBoot()); return; }
+  demoBoot();
+})();
+function gate(msg) { $('#gate').hidden = false; if (msg) $('#gateMsg').textContent = msg; }
+function liveBoot() {
+  $('#app').hidden = false; document.title = `${first()} · Student Academy | Yojo Cyber Academy`;
+  // A new (self-signed-up) student with no path yet starts on the career page; existing students go straight in.
+  if (!me.category && (window.YojoAcademyLive || {}).origin === 'signup') { location.hash = '#/academy/career'; route(); return; }
+  route(); streakCheck();
+}
+function demoBoot() {
+  if (!me) { $('#gate').hidden = false; if (sess && !me) $('#gateMsg').textContent = 'This area is for students only.'; return; }
+  if (!me.category && !me.provisional) { $('#gate').hidden = false; $('#gateMsg').textContent = 'Finish the 18-question questionnaire first to unlock your Academy.'; return; }
+  initStats(me); streakInit(me.stats); saveDb();
+  $('#app').hidden = false; document.title = `${first()} · Student Academy | Yojo Cyber Academy`;
+  route(); streakCheck();
+}
+addEventListener('storage', e => { if (e.key === SHARED_KEY && !e.newValue) location.href = 'index.html'; });
+</script>
+<script src="academy-game.js"></script>
+<script src="academy-mission1.js"></script>
+<script src="academy-story.js"></script>
+<script src="insight-core.js"></script><script src="insight-sdk.js"></script>
+</body>
+</html>

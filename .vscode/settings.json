@@ -1,0 +1,15 @@
+{
+  // Live Server ("Go Live"): serve this folder on port 5500. The pages find the API on :3000 by themselves,
+  // and in local mode the API accepts localhost pages on any port. Sign in on login.html to see live data.
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.host": "127.0.0.1",
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "yojo-backend-auth-ctf-lms/**",
+    "yojo-backend-m1/**",
+    "mission-api/**",
+    "_backup-*/**",
+    "**/node_modules/**"
+  ]
+}

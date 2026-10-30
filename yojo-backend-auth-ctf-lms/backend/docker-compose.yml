@@ -1,0 +1,57 @@
+# Local development services for the Yojo backend (Milestone 1).
+# Dev-only credentials; never reuse them anywhere else.
+#   docker compose up -d          # Postgres 16 + Redis 7
+#   docker compose --profile app up --build   # also runs the API and worker in containers
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: yojo
+      POSTGRES_PASSWORD: yojo_local_dev
+      POSTGRES_DB: yojo_dev
+    ports: ["127.0.0.1:5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yojo -d yojo_dev"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  api:
+    profiles: [app]
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://yojo:yojo_local_dev@postgres:5432/yojo_dev?schema=public
+      REDIS_URL: redis://redis:6379/0
+    command: ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    profiles: [app]
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://yojo:yojo_local_dev@postgres:5432/yojo_dev?schema=public
+      REDIS_URL: redis://redis:6379/0
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      api: { condition: service_started }
+
+volumes:
+  pgdata:
+  redisdata:

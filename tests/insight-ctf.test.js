@@ -1,0 +1,117 @@
+const { chromium } = require('playwright');
+// CTF registration (public page), admin CTF + Total Users + Student Management, Insight Engine pages and consent. Static server on BASE.
+const B = process.env.BASE || 'http://localhost:8765/';
+const results = []; const ok = (n, c, x = '') => results.push([c ? 'PASS' : 'FAIL', n, x]);
+(async () => { let br; try {
+  br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());
+  const ctx = await br.newContext({ viewport: { width: 1366, height: 900 } }); const errs = [];
+  const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message + ' @' + p.url())); p.on('dialog', d => d.dismiss());
+  await p.goto(B + 'login.html?stay=1'); await p.evaluate(() => { YojoDemo.reset(); localStorage.removeItem('yojo_trainer_demo_v2'); localStorage.removeItem('yojo_ctf_registrations'); localStorage.removeItem('yojo_analytics_v1'); localStorage.removeItem('yojo_consent_v1'); sessionStorage.clear(); });
+
+  // public page: logo, no consent banner, CTF popup
+  await p.goto(B + 'index.html'); await p.waitForTimeout(400);
+  ok('Public header uses the new logo image', await p.$eval('.logo img.logo-img', i => i.naturalWidth > 0).catch(() => false));
+  ok('No consent banner on the public page', !(await p.$('#yojoConsent')));
+  await p.click('a[href="#ctf"], nav a', { position: { x: 5, y: 5 } }).catch(() => {}); await p.waitForTimeout(200);
+  ok('Page views are recorded internally with a pseudonymous id', await p.evaluate(() => (JSON.parse(localStorage.getItem('yojo_analytics_v1')) || []).some(e => e.name === 'page_view' && /^a_/.test(e.uid))));
+  ok('Page load timing is recorded as an essential event', await p.evaluate(() => (JSON.parse(localStorage.getItem('yojo_analytics_v1')) || []).some(e => e.name === 'page_load')));
+  // header CTF opens a Register / Login chooser; registration and login are separate pages
+  await p.click('header nav [data-ctf-gate], nav [data-ctf-gate]'); await p.waitForTimeout(400);
+  ok('Header CTF opens a pop-up with Register and Log in', await p.isVisible('#modal a[href="ctf-register.html"]') && await p.isVisible('#modal a[href^="ctf-login.html"]'));
+  await p.click('#modal a[href="ctf-register.html"]'); await p.waitForLoadState(); await p.waitForTimeout(300);
+  ok('Register opens its own page', /ctf-register\.html$/.test(p.url()));
+  ok('Register page has the "already registered, log in" tagline', /Already registered\?[\s\S]*log in/i.test(await p.textContent('.tagline')) && !!(await p.$('.tagline a[href="ctf-login.html"]')));
+  const R = '#ctfBox';
+  await p.click(R + ' button[type=submit]'); await p.waitForTimeout(200);
+  ok('Empty form shows errors', /Please add/.test(await p.textContent(R + ' .err')));
+  const fill = async (sel, v) => p.fill(R + ' [name=' + sel + ']', v);
+  await fill('name', 'Asha Verma'); await fill('email', 'asha.ctf@example.com'); await fill('phone', '9876543210'); await fill('institution', 'NIT Calicut'); await fill('city', 'Kozhikode');
+  await p.selectOption(R + ' [name=level]', { index: 1 });
+  for (const c of await p.$$(R + ' input[type=checkbox]')) await c.check();
+  await fill('username', 'asha_v'); await fill('password', 'flag2026x'); await fill('password2', 'flag2026x');
+  ok('Registration form has no team option', !(await p.$(R + ' [name=mode]')) && !(await p.$(R + ' [name=team]')) && !(await p.$(R + ' .ctf-members')));
+  await p.click(R + ' button[type=submit]'); await p.waitForTimeout(800);
+  ok('Registration asks to set up an authenticator app', await p.isVisible('#mfaKey') && (await p.evaluate(() => JSON.parse(localStorage.getItem('yojo_ctf_registrations') || '[]').length)) === 0);
+  await p.fill(R + ' [name=code]', '000000'); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(300);
+  ok('A wrong authenticator code does not finish registration', /does not match/.test(await p.textContent(R + ' .err')));
+  await p.waitForFunction(() => /^\d{6}$/.test(document.querySelector('#demoTotp').textContent));
+  await p.fill(R + ' [name=code]', await p.textContent('#demoTotp')); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(500);
+  const regs = await p.evaluate(() => JSON.parse(localStorage.getItem('yojo_ctf_registrations') || '[]'));
+  ok('Registration is saved with an ID and username', regs.length === 1 && /^CTF-/.test(regs[0].id) && regs[0].email === 'asha.ctf@example.com' && regs[0].username === 'asha_v', JSON.stringify(regs).slice(0, 200));
+  ok('Password is stored only as a salted hash, with the authenticator enrolled', regs[0] && !JSON.stringify(regs[0]).includes('flag2026x') && /^[0-9a-f]{64}$/.test(regs[0].pwHash) && /^[A-Z2-7]{16}$/.test(regs[0].mfaSecret));
+  ok('Registrant sees a confirmation with a login button', /You are in/.test(await p.textContent(R)) && !!(await p.$(R + ' a[href^="ctf-login.html"]')));
+  ok('CTF registration recorded as an analytics event without personal data', await p.evaluate(() => (JSON.parse(localStorage.getItem('yojo_analytics_v1')) || []).filter(e => e.name === 'ctf_registered').every(e => !JSON.stringify(e).includes('asha') && !JSON.stringify(e).includes('9876543210'))));
+  await p.click(R + ' a[href^="ctf-login.html"]'); await p.waitForLoadState(); await p.waitForTimeout(300);
+  ok('Login opens its own page with the username filled in', /ctf-login\.html/.test(p.url()) && await p.inputValue(R + ' [name=username]') === 'asha_v');
+  await p.fill(R + ' [name=password]', 'wrongpass1'); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(800);
+  ok('Wrong password is refused', /incorrect/.test(await p.textContent(R + ' .err')));
+  await p.fill(R + ' [name=password]', 'flag2026x'); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(800);
+  ok('Correct password asks for the one-time code', await p.isVisible(R + ' [name=otp]'));
+  await p.fill(R + ' [name=otp]', '000000'); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(200);
+  ok('Wrong code is refused', /not right/.test(await p.textContent(R + ' .err')));
+  await p.fill(R + ' [name=otp]', await p.textContent('#demoOtp')); await p.click(R + ' button[type=submit]'); await p.waitForLoadState(); await p.waitForTimeout(400);
+  ok('After the email code, login asks for the authenticator code', await p.isVisible(R + ' [name=totp]'));
+  await p.fill(R + ' [name=totp]', '000000'); await p.click(R + ' button[type=submit]'); await p.waitForTimeout(300);
+  ok('A wrong authenticator code is refused', /not right/.test(await p.textContent(R + ' .err')));
+  await p.waitForFunction(() => /^\d{6}$/.test(document.querySelector('#demoTotp').textContent));
+  await p.fill(R + ' [name=totp]', await p.textContent('#demoTotp'));
+  const [tab] = await Promise.all([ctx.waitForEvent('page'), p.click(R + ' button[type=submit]')]); await tab.waitForLoadState(); await tab.waitForTimeout(400);
+  ok('Correct code logs in to My CTF (new tab)', /ctf-dashboard\.html/.test(tab.url()) && /Welcome, Asha/.test(await tab.textContent(R))); await tab.close();
+  await p.goto(B + 'index.html'); await p.click('nav [data-ctf-gate]'); await p.waitForTimeout(300);
+  ok('Once logged in, the CTF pop-up offers My CTF', await p.isVisible('#modal a[href="ctf-dashboard.html"]'));
+
+  // admin
+  await p.goto(B + 'login.html?stay=1'); await p.evaluate(() => sessionStorage.setItem('yojo_demo_session', JSON.stringify({ email: 'platform.admin@yojo.demo', role: 'admin', at: Date.now() })));
+  const go = async h => { await p.goto(B + 'admin.html?t=' + Date.now() + h); await p.waitForTimeout(900); };
+  const V = () => p.textContent('#view');
+  await go('#/admin/ctf');
+  ok('CTF Registrations opens as its own page (admin-ctf.html)', /admin-ctf\.html/.test(p.url()) && await p.$eval('#nav a[data-mod=ctf]', a => a.getAttribute('href') === '#/admin/ctf') && await p.$eval('#nav a[data-mod=dashboard]', a => a.getAttribute('href').startsWith('admin.html')));
+  ok('Admin sidebar has CTF Registrations, Total Users and Insight Engine', await p.$$eval('#nav a .lb', a => ['CTF Registrations', 'Total Users', 'Insight Engine'].every(x => a.some(y => y.textContent === x))));
+  ok('CTF registration reaches the admin list', /Asha Verma[\s\S]*asha\.ctf@example\.com/.test(await V()));
+  ok('Admin list shows the login', /@asha_v/.test(await V()) && /Have logged in/.test(await V()) && await p.$eval('#cList tbody tr', tr => /1\s*last/.test(tr.textContent)));
+  await p.click('[data-act=conf]'); await p.waitForTimeout(500);
+  ok('Admin can confirm a registration', /Confirmed/.test(await V()));
+  await p.click('#cList tbody tr a[href^="#/admin/ctf/"]'); await p.waitForTimeout(900);
+  ok('Clicking a name opens the registrant page', /#\/admin\/ctf\/.+/.test(p.url()) && /Registration details/.test(await V()) && /Login history/.test(await V()) && /asha\.ctf@example\.com/.test(await V()));
+  await p.click('[data-act=edit]'); await p.waitForTimeout(200);
+  await p.fill('#ctfEd [name=phone]', '12'); await p.click('#ctfEd [type=submit]'); await p.waitForTimeout(600);
+  ok('Edit refuses a bad phone number', /valid phone/.test(await p.textContent('#ctfEd .err')));
+  await p.fill('#ctfEd [name=phone]', '+91 9000011111'); await p.fill('#ctfEd [name=city]', 'Hyderabad'); await p.click('#ctfEd [type=submit]'); await p.waitForTimeout(1100);
+  ok('Admin can edit registration details', !(await p.$('#ctfEd')) && /Hyderabad/.test(await V()) && /9000011111/.test(await V()) && await p.evaluate(() => JSON.parse(localStorage.getItem('yojo_ctf_registrations')).some(r => r.city === 'Hyderabad')));
+  await go('#/admin/students');
+  const sm = await V();
+  ok('Student Management lists the CTF registrant', /Asha Verma/.test(sm));
+  ok('Student Management has no free users', await p.$$eval('#sList tbody tr', rs => rs.every(r => !/\bFree\b/.test(r.textContent))));
+  await go('#/admin/total');
+  const tu = await V(); const m = tu.match(/(\d+)\s*Total users[\s\S]*?(\d+)\s*Free[\s\S]*?(\d+)\s*Paid[\s\S]*?(\d+)\s*CTF registered/);
+  ok('Total Users shows free + paid + CTF', m && +m[1] === +m[2] + +m[3] + +m[4] && +m[4] === 1, m && m.slice(1).join(','));
+
+  // Insight Engine
+  await go('#/admin/analytics/insights');
+  ok('Insights overview opens with headline metrics', /Unique users[\s\S]*Average session[\s\S]*Error rate[\s\S]*Page-load p95/.test(await V()) || /No events in this period/.test(await V()));
+  ok('Live data is the default and is not labelled synthetic', !/SYNTHETIC DEMO DATA/.test(await V()));
+  ok('Short live history shows the insufficient-forecast text', /Insufficient data for reliable forecast/.test(await V()) || /No events in this period/.test(await V()));
+  await p.selectOption('[data-chg=src]', 'synthetic'); await p.waitForTimeout(1500);
+  const ov = await V();
+  ok('Synthetic data is visibly labelled', /SYNTHETIC DEMO DATA/.test(ov));
+  ok('Overview shows time by area and three journeys', /Time spent by area/.test(ov) && /Landing to paid/.test(ov) && /Lab completion/.test(ov) && /Checkout to paid access/.test(ov));
+  await go('#/admin/analytics/friction');
+  ok('Friction map ranks OFF-05 lab start first', /Slow operations, ranked by p95[\s\S]*Lab start: OFF-05/.test(await V()) && (await p.$eval('#view table tbody tr td', td => td.textContent)).includes('OFF-05'));
+  await p.click('[data-act=drill]'); await p.waitForTimeout(700);
+  ok('Drill-down opens', /Drill-down: Lab start: OFF-05/.test(await V()));
+  await go('#/admin/analytics/insights/ai');
+  const ai = await V();
+  ok('AI feed shows insight cards with evidence and status', /OFF-05 is \d+% slower/.test(ai) && /View evidence/.test(ai) && /Confidence/.test(ai));
+  await p.click('article:has-text("OFF-05") [data-act=tk]'); await p.waitForTimeout(300); await p.click('#tkOk'); await p.waitForTimeout(200);
+  ok('Ticket needs explicit confirmation', /Tick the confirmation/.test(await p.textContent('#tkE')));
+  await p.check('#tkC'); await p.click('#tkOk'); await p.waitForTimeout(1200);
+  ok('Confirmed ticket is created and the card moves to Investigating', /Ticket INS-T\d+/.test(await V()) && /Investigating/.test(await p.textContent('article:has-text("OFF-05")')));
+  await p.fill('form[data-sub=ask] input', 'Which labs are slow to start?'); await p.click('form[data-sub=ask] button'); await p.waitForTimeout(800);
+  ok('Analyst answers an allowlisted question with its query plan', /OFF-05/.test(await p.textContent('#ans')) && /Query plan/.test(await p.textContent('#ans')));
+  await p.fill('form[data-sub=ask] input', 'delete all users'); await p.click('form[data-sub=ask] button'); await p.waitForTimeout(800);
+  ok('Analyst refuses a question outside the allowlist', /I can answer questions about/.test(await p.textContent('#ans')));
+  const audit = await p.evaluate(() => JSON.parse(localStorage.getItem('yojo_trainer_demo_v2')).admin.audit.map(a => a.action));
+  ok('Ticket, data source and analyst questions are audited', ['insight ticket created', 'insight data source set to synthetic', 'insight analyst question'].every(a => audit.includes(a)));
+  ok('No page errors', !errs.length, errs.join(' | '));
+} catch (e) { ok('test run', false, e.stack); } finally { if (br) await br.close(); }
+  results.forEach(r => console.log(r[0], r[1], r[2] ? '— ' + r[2] : '')); const f = results.filter(r => r[0] === 'FAIL').length; console.log(`\n${results.length - f} passed, ${f} failed`); process.exit(f ? 1 : 0); })();

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Console | Yojo Cyber Academy</title>
+<meta name="description" content="Yojo Cyber Academy admin console: courses, labs, students, attendance, performance, finance, assessments, analytics, notifications, reports, certificates and settings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="trainer.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+<a class="skip" href="#view">Skip to content</a>
+<div class="shell" id="app" hidden>
+  <aside class="side" id="side" aria-label="Admin modules">
+    <a class="crest" href="#/admin/dashboard" aria-label="Yojo Admin Console home"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="ag" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34D399"/><stop offset="1" stop-color="#3B82F6"/></linearGradient></defs><path d="M24 3l17 6v13c0 11-7.5 19-17 23C14.5 41 7 33 7 22V9z" fill="#0F1A2E" stroke="url(#ag)" stroke-width="2"/><circle cx="24" cy="23" r="8" fill="none" stroke="url(#ag)" stroke-width="1.8"/><path d="M24 11v5M24 30v5M12 23h5M31 23h5" stroke="url(#ag)" stroke-width="1.8" stroke-linecap="round"/><circle cx="24" cy="23" r="2.4" fill="#34D399"/></svg><span><b>YOJO</b><small>Admin Console</small></span></a>
+    <nav class="nav" id="nav" aria-label="Admin modules"></nav>
+    <div class="side-foot">
+      <button class="btn btn-sm compact-btn" id="compactBtn" type="button" aria-pressed="false">Compact sidebar</button>
+      <div class="demo-badge"><b>Demo data.</b> No backend is connected. The rules run in a simulated server (admin-data.js) over the same record the trainer and student pages use.</div>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <button class="iconbtn menu-btn" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="crumb" id="crumb"></div>
+      <form class="gsearch" id="gSearch" role="search"><label class="sr" for="gq">Search users</label><input id="gq" placeholder="Search name, email, user ID, subscription ID, payment ref" autocomplete="off"><div class="pop sres" id="gRes" hidden></div></form>
+      <div class="top-r">
+        <span class="chip role-chip" id="roleChip"></span><span class="chip g mfa-chip" id="mfaChip">MFA on</span>
+        <div style="position:relative">
+          <button class="iconbtn" id="bellBtn" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge" id="bellCnt" hidden></span></button>
+          <div class="pop" id="bellPop" hidden></div>
+        </div>
+        <div style="position:relative">
+          <button class="avatar" id="avBtn" aria-label="Profile menu" aria-haspopup="true"></button>
+          <div class="pop" id="avPop" hidden style="width:260px"></div>
+        </div>
+      </div>
+    </header>
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script>
+/* TOTP (same algorithm as login.html) for MFA on sensitive admin actions */
+function sha1(bytes) {
+  const len = bytes.length, total = ((len + 9 + 63) >> 6) << 6, m = new Uint8Array(total);
+  m.set(bytes); m[len] = 0x80; const dv = new DataView(m.buffer);
+  dv.setUint32(total - 4, (len * 8) >>> 0); dv.setUint32(total - 8, Math.floor(len * 8 / 2 ** 32));
+  let h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0; const w = new Uint32Array(80);
+  for (let i = 0; i < total; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4);
+    for (let t = 16; t < 80; t++) { const x = w[t - 3] ^ w[t - 8] ^ w[t - 14] ^ w[t - 16]; w[t] = (x << 1) | (x >>> 31); }
+    let a = h0, b = h1, c = h2, d = h3, e = h4;
+    for (let t = 0; t < 80; t++) {
+      let f, k;
+      if (t < 20) { f = (b & c) | (~b & d); k = 0x5A827999; } else if (t < 40) { f = b ^ c ^ d; k = 0x6ED9EBA1; }
+      else if (t < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; } else { f = b ^ c ^ d; k = 0xCA62C1D6; }
+      const tmp = (((a << 5) | (a >>> 27)) + f + e + k + w[t]) >>> 0; e = d; d = c; c = ((b << 30) | (b >>> 2)) >>> 0; b = a; a = tmp;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+  }
+  const out = new Uint8Array(20), o = new DataView(out.buffer); [h0, h1, h2, h3, h4].forEach((h, i) => o.setUint32(i * 4, h)); return out;
+}
+function hmacSha1(key, msg) {
+  if (key.length > 64) key = sha1(key);
+  const k = new Uint8Array(64); k.set(key);
+  const ip = new Uint8Array(64 + msg.length), op = new Uint8Array(84);
+  for (let i = 0; i < 64; i++) { ip[i] = k[i] ^ 0x36; op[i] = k[i] ^ 0x5c; }
+  ip.set(msg, 64); op.set(sha1(ip), 64); return sha1(op);
+}
+function b32decode(s) {
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; s = s.replace(/=+$/, '').replace(/\s/g, '').toUpperCase();
+  let bits = 0, val = 0; const out = [];
+  for (const ch of s) { const i = A.indexOf(ch); if (i < 0) continue; val = (val << 5) | i; bits += 5; if (bits >= 8) { out.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+  return new Uint8Array(out);
+}
+function b32random(n = 16) { const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(x => A[x & 31]).join(''); }
+function totp(secret, t = Date.now()) {
+  const c = Math.floor(t / 1000 / 30), msg = new Uint8Array(8), dv = new DataView(msg.buffer);
+  dv.setUint32(0, Math.floor(c / 2 ** 32)); dv.setUint32(4, c >>> 0);
+  const h = hmacSha1(b32decode(secret), msg), o = h[19] & 15;
+  const code = (((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6;
+  return String(code).padStart(6, '0');
+}
+const totpOk = (secret, code) => [-1, 0, 1].some(s => totp(secret, Date.now() + s * 30000) === String(code).trim());
+window.AdminMFA = { secret: null, ok(code) { return !!this.secret && totpOk(this.secret, code); }, code() { return this.secret ? totp(this.secret) : ''; } };
+</script>
+<script src="trainer-data.js"></script>
+<script src="insight-core.js"></script>
+<script src="admin-data.js"></script>
+<script src="yojo-api.js"></script>
+<script src="admin-live.js"></script><script src="demo-banner.js" data-page="admin"></script>
+</body>
+</html>

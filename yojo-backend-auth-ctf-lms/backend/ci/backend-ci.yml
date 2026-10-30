@@ -1,0 +1,49 @@
+# CI for the backend (spec §24, AC-SEC-01). GitHub Actions workflow; copy to <repo>/.github/workflows/ when the
+# repository exists. NOT yet run, because the project has no
+# repository or CI account connected. Move to the repository root's .github/workflows when the repo exists, and set
+# `working-directory` if backend/ stays a subfolder.
+name: backend-ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: yojo
+          POSTGRES_PASSWORD: yojo_local_dev
+          POSTGRES_DB: yojo_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U yojo" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:e2e
+      # Security gates: fail on high/critical advisories and on committed secrets.
+      - run: npm audit --omit=dev --audit-level=high
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

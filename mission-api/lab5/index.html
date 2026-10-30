@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Domain Intelligence Assessment | YOJO Solutions</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#07101f;color:#e6edf7;font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:52rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}h1{color:#39D98A;font-size:1.6rem;margin:.2rem 0}h2{color:#fff;font-size:1.2rem;margin:2rem 0 .6rem}
+.eyebrow{font:600 .75rem ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#7fa4d9}a{color:#FFB000}code{background:#0c1628;border:1px solid #1e2c46;border-radius:6px;padding:.1rem .4rem;color:#FFB000;font-size:.92em}
+.c{border:1px solid #1e2c46;border-radius:12px;padding:1rem 1.1rem;margin:.8rem 0;background:#0c1628}.target{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:baseline}.target b{font:700 1.3rem ui-monospace,Menlo,monospace;color:#FFB000}
+ol,ul{padding-left:1.3rem;display:grid;gap:.4rem}.note{color:#9db0cc;font-size:.92rem}.tag{display:inline-block;border:1px solid #1e2c46;border-radius:999px;padding:.05rem .6rem;font-size:.75rem;color:#7fa4d9;margin-right:.4rem}
+</style>
+</head>
+<body><div class="wrap">
+<p class="eyebrow">OSINT · Domain reconnaissance</p>
+<h1>Domain Expiration Investigation</h1>
+<div class="c"><b>Scenario</b><p>You are performing a domain intelligence assessment for <b>YOJO Solutions</b>. As part of the investigation, you need to determine when the company's domain registration expires and understand the risks associated with an expired domain.</p>
+<p>Your task: investigate the domain's registration information and submit the <b>expiration date</b> on the YOJO Academy mission page.</p>
+<div class="target"><span>Target domain</span><b>yojosolutions.com</b><span class="note">Official website: <a href="https://www.yojosolutions.com/" rel="noopener noreferrer" target="_blank">https://www.yojosolutions.com/</a></span></div></div>
+
+<h2>What is a domain expiration date?</h2>
+<p>A domain name is registered for a specific period. The <b>expiration date</b> is the date associated with the end of that registration period in the domain registry's records.</p>
+
+<h2>Why does it matter?</h2>
+<p>If a domain is not renewed, the registrant may lose the right to use it. Depending on the registrar and the domain extension, it may enter a grace or redemption period and can eventually become available for someone else to register. Possible consequences:</p>
+<ul><li>Website downtime or loss of control over the domain.</li><li>Email delivery disruption.</li><li>Impersonation or phishing if another party obtains the domain.</li><li>Risk to services and accounts tied to the domain, especially where email addresses use it.</li><li>Reputational and business-continuity damage.</li></ul>
+<p class="note">Expiration dates and renewal deadlines are not always identical, and recovery periods vary by registrar and domain extension.</p>
+
+<h2>How to investigate</h2>
+<ol>
+<li>Note the target domain above: <code>yojosolutions.com</code>.</li>
+<li>Open a WHOIS or RDAP lookup service (options below).</li>
+<li>Search for the domain and open the registration record.</li>
+<li>Find the expiry field. It may be labelled <code>Registry Expiry Date</code>, <code>Expiration Date</code> or similar. Do not confuse it with the creation or last-updated date.</li>
+<li>Read the date carefully. Records often show a timestamp such as <code>2030-01-31T12:00:00Z</code>: the date is the part before the <code>T</code>.</li>
+<li>Return to the YOJO Academy mission page, enter the date (for example <code>2030-01-31</code>) and press <b>Submit Answer</b>.</li></ol>
+
+<h2>Lookup services</h2>
+<div class="c"><span class="tag">Option 1</span><a href="https://lookup.icann.org/en/lookup?name=yojosolutions.com" target="_blank" rel="noopener noreferrer">ICANN Lookup</a> <span class="note">official public lookup for domain registration data</span><br>
+<span class="tag">Option 2</span><a href="https://rdap.org/domain/yojosolutions.com" target="_blank" rel="noopener noreferrer">rdap.org</a> <span class="note">redirects to the right registry's RDAP record (raw JSON: look for the <code>expiration</code> event)</span><br>
+<span class="tag">Option 3</span><a href="https://rdap.verisign.com/com/v1/domain/yojosolutions.com" target="_blank" rel="noopener noreferrer">Verisign RDAP</a> <span class="note">the .com registry's own record</span><br>
+<span class="tag">Command line</span><code>whois yojosolutions.com</code> or <code>curl -s https://rdap.org/domain/yojosolutions.com</code></div>
+<p class="note">If one service is slow or unavailable, try another. They read the same registration data.</p>
+
+<h2>Optional reading</h2>
+<p><a href="https://domainnamewire.com/2011/05/16/google-acquires-chromebook-com-and-chromebooks-com-domain-names/" target="_blank" rel="noopener noreferrer">Google acquires Chromebook.com and Chromebooks.com domain names (Domain Name Wire, 2011)</a></p>
+<p class="note">This article reports that Google appears to have acquired those domain names and discusses the history of one of them, which had previously expired and been re-registered. It is background reading on what can happen when a domain lapses. It is not about YOJO Solutions and says nothing about when yojosolutions.com expires.</p>
+
+<div class="c"><b>Scope</b><br>This is a read-only investigation using public lookup services. Do not attempt to renew, transfer, modify or take over any domain.</div>
+</div></body></html>

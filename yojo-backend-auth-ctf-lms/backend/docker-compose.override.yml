@@ -1,0 +1,5 @@
+# Local override: this machine runs a native PostgreSQL service on 5432,
+# so the Docker Postgres is published on 5433 instead.
+services:
+  postgres:
+    ports: !override ["127.0.0.1:5433:5432"]

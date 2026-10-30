@@ -1,0 +1,8 @@
+ENGAGEMENT SCOPE (Reconnaissance Fundamentals lab, fictional)
+Authorization: granted by the Yojo Academy lab for this container only.
+IN SCOPE:   the lab target you started (127.0.0.1 and the port shown in the lab panel)
+            hostname app.example.test (illustrative, resolves nowhere)
+OUT OF SCOPE: every other host, port, domain or subdomain, including anything you find
+              linked from this page, e.g. admin.example.test (not authorized).
+RULES:      low request rate, no exploitation, stop and ask if something is not listed.
+CHECKPOINT: your one-time lab code is published at /lab/code.txt on this target. Enter it in the Academy to finish the lab.

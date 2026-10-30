@@ -1,0 +1,48 @@
+# ---- secrets: never commit (each folder documents its settings in an .env.example or README) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+mission-api/.env.academy-link
+.qa-local/
+
+# ---- local data, mail, uploads ----
+.dev-mail/
+.local-storage/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+dump.rdb
+
+# ---- dependencies and builds ----
+node_modules/
+dist/
+coverage/
+.venv/
+.venv-win/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ---- third-party binaries (download them again; see mission-api/README.md) ----
+mission-api/tools/
+
+# ---- generated ----
+openapi.json
+*.log
+
+# ---- local backups and older copies (kept on the laptop only) ----
+_backup-*/
+yojo-backend-m1/
+
+# ---- OS and editor files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp

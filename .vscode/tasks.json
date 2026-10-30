@@ -1,0 +1,53 @@
+{
+  // Yojo Academy, local development. Terminal > Run Task… > "Yojo: Start everything"
+  // Starts the database and Redis (Docker), the Academy API on :3000 and the pages server on :8000, then opens the site.
+  // Docker Desktop must be running first.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Yojo: Database and Redis",
+      "type": "shell",
+      "command": "docker compose up -d postgres redis",
+      "options": { "cwd": "${workspaceFolder}/yojo-backend-auth-ctf-lms/backend" },
+      "presentation": { "reveal": "silent", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Yojo: API (port 3000)",
+      "type": "shell",
+      "command": "npm run start:dev",
+      "options": { "cwd": "${workspaceFolder}/yojo-backend-auth-ctf-lms/backend" },
+      "isBackground": true,
+      "dependsOn": "Yojo: Database and Redis",
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": {
+        "owner": "yojo-api",
+        "pattern": { "regexp": "^__never__$" },
+        "background": { "activesBegins": true, "beginsPattern": ".", "endsPattern": "Nest application successfully started|Found 0 errors" }
+      }
+    },
+    {
+      "label": "Yojo: Pages (port 8000)",
+      "type": "shell",
+      "command": "python scripts/pages-server.py . 8000",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": {
+        "owner": "yojo-pages",
+        "pattern": { "regexp": "^__never__$" },
+        "background": { "activesBegins": true, "beginsPattern": ".", "endsPattern": "." }
+      }
+    },
+    {
+      "label": "Yojo: Start everything",
+      "dependsOn": ["Yojo: API (port 3000)", "Yojo: Pages (port 8000)"],
+      "dependsOrder": "parallel",
+      "type": "shell",
+      "command": "Start-Process http://localhost:8000/",
+      "options": { "shell": { "executable": "powershell.exe", "args": ["-NoProfile", "-Command"] } },
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": []
+    }
+  ]
+}

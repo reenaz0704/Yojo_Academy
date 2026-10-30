@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CTF login | Yojo Cyber Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Tektur:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="ctf.css"></head><body>
+<header class="top"><a class="brand" href="index.html"><img src="assets/brand/yojo-logo.jpg" alt="">YOJO CTF</a>
+<nav aria-label="CTF"><a href="index.html#ctf">About the CTF</a><a href="ctf-register.html">Register</a><a href="ctf-login.html" aria-current="page">Login</a><a href="index.html">Back to Yojo</a></nav></header>
+<main><span class="eyebrow">Yojo Winter CTF · Login</span><h1>Log in to the CTF</h1><p class="lead">Username and password, then a one-time code sent to your registered email.</p><p class="tagline"><span>New to the CTF?</span><a href="ctf-register.html">Register here ▸</a></p><div class="card" id="ctfBox"></div></main>
+<script src="yojo-api.js"></script><script src="ctf-auth.js"></script><script src="insight-core.js"></script><script src="insight-sdk.js"></script>
+<script>YojoCTF.loginForm(document.getElementById('ctfBox'));</script>
+</body></html>

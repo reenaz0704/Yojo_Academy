@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /admin-old/
+Sitemap: http://app.example.test/sitemap.xml

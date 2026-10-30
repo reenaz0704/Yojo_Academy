@@ -1,0 +1,2062 @@
+// Yojo Cyber Academy · Milestone 1 (Foundation) schema.
+// Spec v2.0 chapter 7: UUID keys + human codes, timestamptz, citext emails, append-only audit tables.
+// Constraints Prisma cannot express (CHECKs, partial unique indexes, append-only triggers, citext extension)
+// live in the hand-written SQL of each migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  student
+  trainer
+  admin
+  participant
+}
+
+enum AdminRole {
+  platform
+  payment
+  content
+  support
+}
+
+enum Capability {
+  trainer
+  trainer_mentor
+}
+
+enum UserStatus {
+  pending_verification
+  invited
+  active
+  locked
+  suspended
+  deletion_requested
+  deleted
+}
+
+enum UserOrigin {
+  yojo
+  signup
+  ctf
+  staff
+}
+
+enum AuthProvider {
+  google
+  password
+  ctf_password
+}
+
+enum ConsentKind {
+  terms
+  privacy
+  aup
+  marketing
+  parental
+  staff_policy
+  code_of_conduct
+  analytics
+  ctf_rules
+  ctf_contact
+}
+
+enum AccessRequestStatus {
+  pending
+  approved
+  declined
+}
+
+enum PermissionLevel {
+  Y
+  R
+}
+
+enum DualControlKind {
+  mfa_reset
+  offline_payment
+  payment_override
+  broadcast
+}
+
+enum DualControlStatus {
+  awaiting_second_admin
+  confirmed
+  rejected
+  expired
+}
+
+enum AuditOutcome {
+  success
+  denied
+  failed
+}
+
+model User {
+  id                String      @id @default(uuid()) @db.Uuid
+  code              String      @unique @default(dbgenerated("('U-'::text || (nextval('user_code_seq'::regclass))::text)"))
+  email             String      @unique @db.Citext
+  phone             String?
+  role              UserRole
+  adminRole         AdminRole?  @map("admin_role")
+  capability        Capability?
+  status            UserStatus
+  origin            UserOrigin
+  displayName       String?     @map("display_name")
+  passwordHash      String?     @map("password_hash")
+  passwordHistory   String[]    @default([]) @map("password_history")
+  passwordChangedAt DateTime?   @map("password_changed_at") @db.Timestamptz(6)
+  failedLogins      Int         @default(0) @map("failed_logins")
+  lockedUntil       DateTime?   @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt       DateTime?   @map("last_login_at") @db.Timestamptz(6)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  identities       AuthIdentity[]
+  mfaFactors       MfaFactor[]
+  recoveryCodes    RecoveryCode[]
+  sessions         UserSession[]
+  studentProfile   StudentProfile?
+  staffProfile     StaffProfile?
+  consents         Consent[]
+  invitesCreated   StaffInvite[]         @relation("InviteCreatedBy")
+  ctfRegistrations CtfRegistration[]
+  subscriptions    Subscription[]
+  entitlements     Entitlement[]
+  enrolments       Enrolment[]
+  batchesLed       Batch[]               @relation("BatchTrainer")
+  submissions      PublicSubmission[]    @relation("SubmissionUser")
+  submissionsOwned PublicSubmission[]    @relation("SubmissionAssignee")
+  xpEntries        XpLedger[]            @relation("XpOwner")
+  activities       StudentActivity[]     @relation("ActivityOwner")
+  streak           StreakState?          @relation("StreakOwner")
+  remarksAbout     StudentRemark[]       @relation("RemarkStudent")
+  remarksWritten   StudentRemark[]       @relation("RemarkAuthor")
+  requestsAbout    StudentStaffRequest[] @relation("RequestStudent")
+  requestsRaised   StudentStaffRequest[] @relation("RequestRaisedBy")
+  feedbackGiven    TrainerFeedback[]     @relation("FeedbackStudent")
+  feedbackReceived TrainerFeedback[]     @relation("FeedbackTrainer")
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model AuthIdentity {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  provider   AuthProvider
+  subject    String
+  /// argon2id hash for ctf_password identities (CTF username login). Never returned by any API.
+  secretHash String?      @map("secret_hash")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+model MfaFactor {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  type         String    @default("totp")
+  secretEnc    Bytes     @map("secret_enc")
+  keyId        String    @map("key_id")
+  confirmedAt  DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  lastUsedStep BigInt?   @map("last_used_step")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, type])
+  @@map("mfa_factors")
+}
+
+model RecoveryCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("recovery_codes")
+}
+
+model UserSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  sessionHash  String    @unique @map("session_hash")
+  ip           String?
+  userAgent    String?   @map("user_agent")
+  lastSeenAt   DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokeReason String?   @map("revoke_reason")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, revokedAt])
+  @@map("user_sessions")
+}
+
+model Institution {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String
+  emailDomain String?          @map("email_domain") @db.Citext
+  isYojo      Boolean          @default(false) @map("is_yojo")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  students    StudentProfile[]
+
+  @@map("institutions")
+}
+
+model StudentProfile {
+  userId          String       @id @map("user_id") @db.Uuid
+  /// Yojo-issued student ID used on the "Yojo student: YES" sign-in path.
+  studentNumber   String?      @unique @map("student_number") @db.Citext
+  institutionName String?      @map("institution_name")
+  name            String?
+  dob             DateTime?    @db.Date
+  city            String?
+  institutionId   String?      @map("institution_id") @db.Uuid
+  eduLevel        String?      @map("edu_level")
+  stream          String?
+  gradYear        Int?         @map("grad_year") @db.SmallInt
+  cgpa            Decimal?     @db.Decimal(4, 2)
+  skills          String[]     @default([])
+  objective       String?
+  certifications  String[]     @default([])
+  displayName     String?      @map("display_name")
+  showOnBoard     Boolean      @default(true) @map("show_on_board")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  guardian        Guardian?
+
+  @@index([institutionId])
+  @@map("student_profiles")
+}
+
+model Guardian {
+  id        String         @id @default(uuid()) @db.Uuid
+  studentId String         @unique @map("student_id") @db.Uuid
+  name      String
+  relation  String
+  phone     String
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student   StudentProfile @relation(fields: [studentId], references: [userId], onDelete: Restrict)
+
+  @@map("guardians")
+}
+
+model StaffProfile {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @unique @map("user_id") @db.Uuid
+  displayName           String?   @map("display_name")
+  title                 String?
+  speciality            String?
+  experience            String?
+  certifications        String[]  @default([])
+  languages             String[]  @default([])
+  bio                   String?
+  linkedinUrl           String?   @map("linkedin_url")
+  availability          Json?
+  isPublicMentor        Boolean   @default(false) @map("is_public_mentor")
+  /// Set when an admin checked the certifications listed above; students see them as verified only then.
+  credentialsVerifiedAt DateTime? @map("credentials_verified_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("staff_profiles")
+}
+
+model Consent {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String      @map("user_id") @db.Uuid
+  kind       ConsentKind
+  version    String
+  accepted   Boolean
+  acceptedAt DateTime    @default(now()) @map("accepted_at") @db.Timestamptz(6)
+  ip         String?
+  userAgent  String?     @map("user_agent")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, kind, acceptedAt(sort: Desc)])
+  @@map("consents")
+}
+
+model StaffInvite {
+  id          String      @id @default(uuid()) @db.Uuid
+  email       String      @db.Citext
+  role        UserRole
+  adminRole   AdminRole?  @map("admin_role")
+  capability  Capability?
+  batchIds    String[]    @default([]) @map("batch_ids")
+  tokenHash   String      @unique @map("token_hash")
+  expiresAt   DateTime    @map("expires_at") @db.Timestamptz(6)
+  acceptedAt  DateTime?   @map("accepted_at") @db.Timestamptz(6)
+  revokedAt   DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  createdById String?     @map("created_by") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdBy   User?       @relation("InviteCreatedBy", fields: [createdById], references: [id])
+
+  @@index([email])
+  @@map("staff_invites")
+}
+
+model StaffAccessRequest {
+  id             String              @id @default(uuid()) @db.Uuid
+  name           String
+  email          String              @db.Citext
+  role           String
+  reason         String
+  status         AccessRequestStatus @default(pending)
+  decidedById    String?             @map("decided_by") @db.Uuid
+  decisionReason String?             @map("decision_reason")
+  decidedAt      DateTime?           @map("decided_at") @db.Timestamptz(6)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@map("staff_access_requests")
+}
+
+model SupportPurpose {
+  id        String   @id @default(uuid()) @db.Uuid
+  adminId   String   @map("admin_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  reason    String
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([adminId, studentId, expiresAt])
+  @@map("support_purposes")
+}
+
+/// Seeded only by migrations/seed; no API writes this table.
+model RolePermission {
+  id         String          @id @default(uuid()) @db.Uuid
+  adminRole  AdminRole       @map("admin_role")
+  permission String
+  level      PermissionLevel
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([adminRole, permission])
+  @@map("role_permissions")
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  section   String   @unique
+  value     Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("settings")
+}
+
+model SettingLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  section   String
+  byId      String?  @map("by_id") @db.Uuid
+  version   Int
+  diff      Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([section, createdAt])
+  @@map("settings_log")
+}
+
+model AuditLog {
+  seq        BigInt       @id @default(autoincrement())
+  id         String       @unique @default(uuid()) @db.Uuid
+  at         DateTime     @default(now()) @db.Timestamptz(6)
+  actorId    String?      @map("actor_id") @db.Uuid
+  actorRole  String?      @map("actor_role")
+  adminRole  String?      @map("admin_role")
+  action     String
+  targetType String?      @map("target_type")
+  targetId   String?      @map("target_id")
+  detail     Json         @default("{}")
+  reason     String?
+  ip         String?
+  userAgent  String?      @map("user_agent")
+  requestId  String?      @map("request_id")
+  outcome    AuditOutcome
+  prevHash   String       @map("prev_hash")
+  rowHash    String       @map("row_hash")
+
+  @@index([actorId, at])
+  @@index([action, at])
+  @@index([targetType, targetId])
+  @@map("audit_log")
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  aggregate   String
+  aggregateId String    @map("aggregate_id")
+  type        String
+  payload     Json
+  occurredAt  DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+
+  @@map("outbox_events")
+}
+
+model IdempotencyKey {
+  id             String   @id @default(uuid()) @db.Uuid
+  key            String
+  userId         String   @map("user_id") @db.Uuid
+  route          String
+  requestHash    String   @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body")
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userId, route, key])
+  @@map("idempotency_keys")
+}
+
+model DualControlAction {
+  id            String            @id @default(uuid()) @db.Uuid
+  code          String            @unique @default(dbgenerated("('DC-'::text || (nextval('dual_control_code_seq'::regclass))::text)"))
+  kind          DualControlKind
+  targetType    String            @map("target_type")
+  targetId      String            @map("target_id")
+  payload       Json              @default("{}")
+  requestedById String            @map("requested_by") @db.Uuid
+  secondAdminId String?           @map("second_admin") @db.Uuid
+  status        DualControlStatus @default(awaiting_second_admin)
+  reason        String
+  decisionNote  String?           @map("decision_note")
+  expiresAt     DateTime          @map("expires_at") @db.Timestamptz(6)
+  decidedAt     DateTime?         @map("decided_at") @db.Timestamptz(6)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, kind])
+  @@map("dual_control_actions")
+}
+
+// ── Plans and entitlements (spec §7.9). Paid access is derived only from active entitlements. ──
+
+model Plan {
+  id            String         @id @default(uuid()) @db.Uuid
+  code          String         @unique
+  name          String
+  pricePaise    Int            @default(0) @map("price_paise")
+  currency      String         @default("INR")
+  features      Json           @default("{}")
+  grants        Json           @default("[]")
+  active        Boolean        @default(true)
+  version       Int            @default(1)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+  revoked
+}
+
+model Subscription {
+  id        String             @id @default(uuid()) @db.Uuid
+  code      String             @unique @default(dbgenerated("('SUB-'::text || (nextval('subscription_code_seq'::regclass))::text)"))
+  studentId String             @map("student_id") @db.Uuid
+  planId    String             @map("plan_id") @db.Uuid
+  status    SubscriptionStatus @default(active)
+  startsAt  DateTime           @default(now()) @map("starts_at") @db.Timestamptz(6)
+  endsAt    DateTime?          @map("ends_at") @db.Timestamptz(6)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student   User               @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  plan      Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, status])
+  @@map("subscriptions")
+}
+
+enum EntitlementSource {
+  payment
+  manual
+}
+
+model Entitlement {
+  id           String            @id @default(uuid()) @db.Uuid
+  studentId    String            @map("student_id") @db.Uuid
+  key          String
+  source       EntitlementSource
+  grantedById  String?           @map("granted_by") @db.Uuid
+  reason       String?
+  startsAt     DateTime          @default(now()) @map("starts_at") @db.Timestamptz(6)
+  endsAt       DateTime?         @map("ends_at") @db.Timestamptz(6)
+  revokedAt    DateTime?         @map("revoked_at") @db.Timestamptz(6)
+  revokedById  String?           @map("revoked_by") @db.Uuid
+  revokeReason String?           @map("revoke_reason")
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student      User              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, key])
+  @@map("entitlements")
+}
+
+// ── Batches and enrolments (spec §7.4), needed now for trainer batch scope. ──
+
+enum BatchStatus {
+  planned
+  active
+  completed
+  cancelled
+}
+
+model Batch {
+  id           String         @id @default(uuid()) @db.Uuid
+  code         String         @unique
+  name         String
+  trainerId    String?        @map("trainer_id") @db.Uuid
+  coTrainerIds String[]       @default([]) @map("co_trainer_ids") @db.Uuid
+  mode         String         @default("online")
+  startDate    DateTime?      @map("start_date") @db.Date
+  endDate      DateTime?      @map("end_date") @db.Date
+  status       BatchStatus    @default(planned)
+  /// The course this batch runs; enrolment in the batch opens that course (with paid access for paid courses).
+  courseId     String?        @map("course_id") @db.Uuid
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  course       Course?        @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  trainer      User?          @relation("BatchTrainer", fields: [trainerId], references: [id])
+  sessions     ClassSession[]
+  enrolments   Enrolment[]
+
+  @@index([trainerId])
+  @@map("batches")
+}
+
+enum EnrolmentStatus {
+  active
+  paused
+  completed
+  withdrawn
+}
+
+model Enrolment {
+  id        String          @id @default(uuid()) @db.Uuid
+  studentId String          @map("student_id") @db.Uuid
+  batchId   String          @map("batch_id") @db.Uuid
+  status    EnrolmentStatus @default(active)
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student   User            @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  batch     Batch           @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, batchId])
+  @@index([batchId, status])
+  @@map("enrolments")
+}
+
+// ── CTF (spec §7.7, §10.3). Teams, challenges and scoring arrive with M5. ──
+
+enum CtfEventStatus {
+  draft
+  registration
+  live
+  frozen
+  ended
+}
+
+model CtfEvent {
+  id            String               @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String               @unique
+  startsAt      DateTime?            @map("starts_at") @db.Timestamptz(6)
+  endsAt        DateTime?            @map("ends_at") @db.Timestamptz(6)
+  freezeAt      DateTime?            @map("freeze_at") @db.Timestamptz(6)
+  status        CtfEventStatus       @default(draft)
+  // Public listing on the website (CTF page "Upcoming" cards and reminders); independent of the CTF status.
+  listed        Boolean              @default(false)
+  summary       String?
+  durationHours Int?                 @map("duration_hours")
+  format        String?
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  registrations CtfRegistration[]
+  reminders     PublicSubscription[]
+
+  @@map("ctf_events")
+}
+
+enum CtfRegistrationStatus {
+  registered
+  approved
+  waitlisted
+  withdrawn
+  disqualified
+}
+
+model CtfRegistration {
+  id          String                @id @default(uuid()) @db.Uuid
+  code        String                @unique @default(dbgenerated("('CR-'::text || (nextval('ctf_registration_code_seq'::regclass))::text)"))
+  eventId     String                @map("event_id") @db.Uuid
+  userId      String                @map("user_id") @db.Uuid
+  username    String                @db.Citext
+  phone       String?
+  institution String?
+  city        String?
+  level       String?
+  mode        String                @default("solo")
+  teamName    String?               @map("team_name")
+  status      CtfRegistrationStatus @default(registered)
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event       CtfEvent              @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, userId])
+  @@unique([eventId, username])
+  @@index([userId])
+  @@map("ctf_registrations")
+}
+
+// ── Public website: enquiries, subscriptions, managed content (docs/PUBLIC-INVENTORY.md) ──
+
+enum SubmissionType {
+  contact
+  mentorship_session
+  internship_application
+  course_enrolment
+}
+
+/// Lifecycle; allowed transitions are enforced in SubmissionsService (SUBMISSION_TRANSITIONS).
+enum SubmissionStatus {
+  new
+  reviewing
+  assigned
+  in_progress
+  waiting_for_user
+  resolved
+  closed
+  rejected
+}
+
+/// One row per accepted website form or portal request. Never creates or changes a user account.
+model PublicSubmission {
+  id              String            @id @default(uuid()) @db.Uuid
+  reference       String            @unique @default(dbgenerated("('ENQ-'::text || (nextval('public_submission_ref_seq'::regclass))::text)"))
+  type            SubmissionType
+  /// Contact topic, mentorship path, internship squad or course title (from the form's fixed list).
+  topic           String?
+  name            String
+  email           String?           @db.Citext
+  phone           String?
+  message         String?
+  /// Type-specific answers that are not columns (e.g. preferredAt for a mentor call). Allow-listed per type.
+  answers         Json              @default("{}")
+  sourcePage      String?           @map("source_page")
+  userId          String?           @map("user_id") @db.Uuid
+  consentKind     String?           @map("consent_kind")
+  consentVersion  String?           @map("consent_version")
+  consentAt       DateTime?         @map("consent_at") @db.Timestamptz(6)
+  status          SubmissionStatus  @default(new)
+  assigneeId      String?           @map("assignee_id") @db.Uuid
+  /// sha256(type|email|phone|topic): duplicate-window lookups without scanning personal data.
+  dedupeKey       String            @map("dedupe_key")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  firstResponseAt DateTime?         @map("first_response_at") @db.Timestamptz(6)
+  resolvedAt      DateTime?         @map("resolved_at") @db.Timestamptz(6)
+  user            User?             @relation("SubmissionUser", fields: [userId], references: [id], onDelete: SetNull)
+  assignee        User?             @relation("SubmissionAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  notes           SubmissionNote[]
+  events          SubmissionEvent[]
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([assigneeId, status])
+  @@index([dedupeKey, createdAt])
+  @@index([userId])
+  @@map("public_submissions")
+}
+
+/// Internal staff notes. Never returned by a public route.
+model SubmissionNote {
+  id           String           @id @default(uuid()) @db.Uuid
+  submissionId String           @map("submission_id") @db.Uuid
+  authorId     String           @map("author_id") @db.Uuid
+  body         String
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  submission   PublicSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, createdAt])
+  @@map("submission_notes")
+}
+
+/// Append-only history: created, status changes, assignments, notes, contact attempts.
+model SubmissionEvent {
+  id           String            @id @default(uuid()) @db.Uuid
+  submissionId String            @map("submission_id") @db.Uuid
+  actorId      String?           @map("actor_id") @db.Uuid
+  kind         String
+  fromStatus   SubmissionStatus? @map("from_status")
+  toStatus     SubmissionStatus? @map("to_status")
+  assigneeId   String?           @map("assignee_id") @db.Uuid
+  detail       Json              @default("{}")
+  at           DateTime          @default(now()) @db.Timestamptz(6)
+  submission   PublicSubmission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId, at])
+  @@map("submission_events")
+}
+
+/// Only event reminders: the newsletter was removed (OI-37).
+enum PublicSubscriptionKind {
+  event_reminder
+}
+
+enum PublicSubscriptionStatus {
+  active
+  unsubscribed
+}
+
+/// Marketing-type subscriptions with their own consent and a tokenised unsubscribe (token stored as sha256).
+model PublicSubscription {
+  id              String                   @id @default(uuid()) @db.Uuid
+  kind            PublicSubscriptionKind
+  email           String                   @db.Citext
+  /// The event id for reminders (one row per kind + email + scope).
+  scope           String                   @default("")
+  eventId         String?                  @map("event_id") @db.Uuid
+  status          PublicSubscriptionStatus @default(active)
+  consentVersion  String                   @map("consent_version")
+  consentAt       DateTime                 @default(now()) @map("consent_at") @db.Timestamptz(6)
+  unsubscribeHash String                   @unique @map("unsubscribe_hash")
+  unsubscribedAt  DateTime?                @map("unsubscribed_at") @db.Timestamptz(6)
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event           CtfEvent?                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, email, scope])
+  @@index([eventId, status])
+  @@map("public_subscriptions")
+}
+
+enum PublicContentKind {
+  faq
+  testimonial
+  mentor
+  post
+}
+
+enum PublicContentStatus {
+  draft
+  published
+  archived
+}
+
+/// Website content managed in the Admin LMS. Public routes return status = published only.
+model PublicContent {
+  id          String              @id @default(uuid()) @db.Uuid
+  kind        PublicContentKind
+  slug        String              @db.Citext
+  title       String
+  /// Plain text (paragraphs separated by blank lines). Never rendered as HTML.
+  body        String              @default("")
+  /// Kind-specific fields, allow-listed per kind in PublicContentService.
+  data        Json                @default("{}")
+  status      PublicContentStatus @default(draft)
+  sortOrder   Int                 @default(0) @map("sort_order")
+  publishedAt DateTime?           @map("published_at") @db.Timestamptz(6)
+  createdById String?             @map("created_by") @db.Uuid
+  updatedById String?             @map("updated_by") @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([kind, slug])
+  @@index([kind, status, sortOrder])
+  @@map("public_content")
+}
+
+// ── Student Academy: XP, streaks, daily patches, weekly ops, achievements, league (docs/ACADEMY-INVENTORY.md) ──
+
+enum XpKind {
+  award
+  penalty
+  correction
+}
+
+/// Append-only XP ledger. The student's total is the sum of delta; nothing stores a mutable total.
+/// `source` names the verified event (e.g. daily:2026-10-22:lab, mission:INT-01:complete, streak_keep:<breakId>);
+/// one row per (user, source) makes every reward idempotent.
+model XpLedger {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  delta     Int
+  kind      XpKind
+  source    String
+  reason    String
+  /// A lab or daily-patch award: the IST day it lands on counts toward the streak.
+  qualifies Boolean  @default(false)
+  actorId   String?  @map("actor_id") @db.Uuid
+  /// Monday (IST) of the week the entry belongs to, for the weekly league.
+  weekStart DateTime @map("week_start") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation("XpOwner", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, source])
+  @@index([userId, createdAt])
+  @@index([weekStart, userId])
+  @@map("xp_ledger")
+}
+
+enum ActivityKind {
+  lesson_completed
+  lab_completed
+  blog_read
+  quiz_passed
+}
+
+/// Server-recorded learning events (never written from a client claim). Daily patches, weekly ops and
+/// achievements are judged from these rows.
+model StudentActivity {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  kind      ActivityKind
+  refId     String       @map("ref_id")
+  /// Category of the lab or course (Offensive, Defensive, GRC, …) when it matters for achievements.
+  category  String?
+  premium   Boolean      @default(false)
+  day       DateTime     @db.Date
+  weekStart DateTime     @map("week_start") @db.Date
+  at        DateTime     @default(now()) @db.Timestamptz(6)
+  user      User         @relation("ActivityOwner", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, kind, refId, day])
+  @@index([userId, day])
+  @@index([userId, kind])
+  @@map("student_activity")
+}
+
+model StreakState {
+  userId           String    @id @map("user_id") @db.Uuid
+  current          Int       @default(0)
+  longest          Int       @default(0)
+  lastQualifiedDay DateTime? @map("last_qualified_day") @db.Date
+  lastQualifiedAt  DateTime? @map("last_qualified_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User      @relation("StreakOwner", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("streak_state")
+}
+
+/// One row per IST day on which the student earned XP from a lab or a daily patch.
+model StreakDay {
+  userId String   @map("user_id") @db.Uuid
+  day    DateTime @db.Date
+
+  @@id([userId, day])
+  @@map("streak_days")
+}
+
+enum StreakDecision {
+  keep
+  reset
+}
+
+/// A broken streak waiting for (or after) the student's keep/reset choice. At most one undecided row per student.
+model StreakBreak {
+  id           String          @id @default(uuid()) @db.Uuid
+  userId       String          @map("user_id") @db.Uuid
+  streakLength Int             @map("streak_length")
+  lastActiveAt DateTime        @map("last_active_at") @db.Timestamptz(6)
+  detectedAt   DateTime        @default(now()) @map("detected_at") @db.Timestamptz(6)
+  decision     StreakDecision?
+  xpCost       Int?            @map("xp_cost")
+  decidedAt    DateTime?       @map("decided_at") @db.Timestamptz(6)
+
+  @@index([userId, detectedAt])
+  @@map("streak_breaks")
+}
+
+model Achievement {
+  code      String            @id
+  title     String
+  icon      String
+  /// Server-evaluated rule: kind + threshold (see GamificationService.ACHIEVEMENT_RULES).
+  ruleKind  String            @map("rule_kind")
+  threshold Int               @default(1)
+  ruleArg   String?           @map("rule_arg")
+  sortOrder Int               @default(0) @map("sort_order")
+  active    Boolean           @default(true)
+  awards    UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  userId      String      @map("user_id") @db.Uuid
+  code        String
+  awardedAt   DateTime    @default(now()) @map("awarded_at") @db.Timestamptz(6)
+  achievement Achievement @relation(fields: [code], references: [code], onDelete: Restrict)
+
+  @@id([userId, code])
+  @@map("user_achievements")
+}
+
+enum LeagueDivision {
+  bronze
+  silver
+  gold
+  platinum
+  diamond
+}
+
+model LeagueMembership {
+  userId    String         @id @map("user_id") @db.Uuid
+  division  LeagueDivision @default(bronze)
+  updatedAt DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("league_memberships")
+}
+
+/// Closed weeks: rank inside the division and the move it caused. Written once per (week, user).
+model LeagueResult {
+  weekStart DateTime       @map("week_start") @db.Date
+  userId    String         @map("user_id") @db.Uuid
+  division  LeagueDivision
+  rank      Int
+  weekXp    Int            @map("week_xp")
+  outcome   String
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([weekStart, userId])
+  @@index([userId])
+  @@map("league_results")
+}
+
+/// Onboarding questionnaire results (scored on the server). The latest row is the student's path and power levels.
+model OnboardingResult {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  rulesVersion String   @map("rules_version")
+  answers      Json
+  offensive    Int
+  defensive    Int
+  grc          Int
+  primary      String
+  secondary    String
+  provisional  Boolean
+  confidence   String
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@map("onboarding_results")
+}
+
+// ── Student Academy slice (b): courses, modules, lessons, FAQs, progress, certificates ──
+
+enum CourseStatus {
+  draft
+  published
+  unpublished
+  archived
+}
+
+enum CourseAccess {
+  free
+  paid
+}
+
+/// A course in the Cyber Arsenal. Paid courses open through a batch that runs them (batches.course_id) plus paid
+/// access (entitlement plan:paid or course:<code>); free courses open to every signed-in student.
+model Course {
+  id                   String         @id @default(uuid()) @db.Uuid
+  code                 String         @unique
+  slug                 String         @unique @db.Citext
+  title                String
+  summary              String         @default("")
+  overview             String         @default("")
+  category             String
+  level                String         @default("")
+  duration             String         @default("")
+  format               String[]       @default([])
+  access               CourseAccess   @default(paid)
+  featured             Boolean        @default(false)
+  outcomes             String[]       @default([])
+  prerequisites        String         @default("")
+  prerequisiteCourseId String?        @map("prerequisite_course_id") @db.Uuid
+  audience             String         @default("")
+  labs                 String[]       @default([])
+  /// Certificate name when the course offers one, else null.
+  certificate          String?
+  imageUrl             String?        @map("image_url")
+  /// Published price in paise (null = "on request"); set by an admin, never taken from a client.
+  pricePaise           Int?           @map("price_paise")
+  status               CourseStatus   @default(draft)
+  version              Int            @default(1)
+  ownerId              String?        @map("owner_id") @db.Uuid
+  /// Trainers who may edit this course with its owner (owner adds them from the trainer console).
+  coEditorIds          String[]       @default([]) @map("co_editor_ids") @db.Uuid
+  /// Cover image uploaded from the trainer console (a CourseFile of kind "cover").
+  coverFileId          String?        @map("cover_file_id") @db.Uuid
+  publishedAt          DateTime?      @map("published_at") @db.Timestamptz(6)
+  createdAt            DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  modules              CourseModule[]
+  lessons              Lesson[]
+  faqs                 CourseFaq[]
+  batches              Batch[]
+  certificates         Certificate[]
+  changeRequests       CourseChangeRequest[]
+  files                CourseFile[]
+
+  @@index([status, category])
+  @@map("courses")
+}
+
+model CourseModule {
+  id        String   @id @default(uuid()) @db.Uuid
+  courseId  String   @map("course_id") @db.Uuid
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+
+  @@index([courseId, sortOrder])
+  @@map("course_modules")
+}
+
+enum LessonType {
+  video
+  document
+  slides
+  concept
+  quiz
+  lab
+  live_class
+  resource
+}
+
+enum LessonStatus {
+  draft
+  published
+}
+
+/// How a lesson counts as complete. manual = the student opened it and marked it done; quiz_pass and lab_cleared
+/// need a verified result recorded by the assessment or lab module.
+enum LessonCompletion {
+  manual
+  quiz_pass
+  lab_cleared
+}
+
+model Lesson {
+  id           String           @id @default(uuid()) @db.Uuid
+  courseId     String           @map("course_id") @db.Uuid
+  moduleId     String           @map("module_id") @db.Uuid
+  title        String
+  type         LessonType
+  status       LessonStatus     @default(draft)
+  sortOrder    Int              @default(0) @map("sort_order")
+  preview      Boolean          @default(false)
+  required     Boolean          @default(true)
+  completion   LessonCompletion @default(manual)
+  /// Quiz or lab code this lesson points to (assessment / mission modules).
+  refCode      String?          @map("ref_code")
+  contentUrl   String?          @map("content_url")
+  body         String?
+  /// Object-storage key of a private file (storage provider not configured yet).
+  fileKey      String?          @map("file_key")
+  fileName     String?          @map("file_name")
+  fileSizeMb   Decimal?         @map("file_size_mb") @db.Decimal(8, 2)
+  downloadable Boolean          @default(false)
+  durationMin  Int?             @map("duration_min")
+  releaseAt    DateTime?        @map("release_at") @db.Timestamptz(6)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module       CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress     LessonProgress[]
+
+  @@index([courseId, status])
+  @@index([moduleId, sortOrder])
+  @@map("lessons")
+}
+
+model CourseFaq {
+  id        String  @id @default(uuid()) @db.Uuid
+  courseId  String  @map("course_id") @db.Uuid
+  question  String
+  answer    String
+  sortOrder Int     @default(0) @map("sort_order")
+  published Boolean @default(false)
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, sortOrder])
+  @@map("course_faqs")
+}
+
+model LessonProgress {
+  userId       String    @map("user_id") @db.Uuid
+  lessonId     String    @map("lesson_id") @db.Uuid
+  courseId     String    @map("course_id") @db.Uuid
+  startedAt    DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  lastAccessAt DateTime  @default(now()) @map("last_access_at") @db.Timestamptz(6)
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(6)
+  lesson       Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([userId, courseId])
+  @@map("lesson_progress")
+}
+
+model Certificate {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique @default(dbgenerated("('YJ-CERT-'::text || (nextval('certificate_code_seq'::regclass))::text)"))
+  userId       String    @map("user_id") @db.Uuid
+  courseId     String    @map("course_id") @db.Uuid
+  issuedAt     DateTime  @default(now()) @map("issued_at") @db.Timestamptz(6)
+  issuedById   String    @map("issued_by") @db.Uuid
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedById  String?   @map("revoked_by") @db.Uuid
+  revokeReason String?   @map("revoke_reason")
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("certificates")
+}
+
+// ── Student Academy slice (c): class sessions, attendance, holidays, trainer slots and bookings, leave, messages ──
+
+enum SessionType {
+  class
+  lab
+  mentor
+  quiz
+}
+
+enum SessionStatus {
+  scheduled
+  cancelled
+}
+
+/// A scheduled class, lab, quiz or mentor session for a batch. "Live" and "completed" are derived from the times.
+model ClassSession {
+  id                  String            @id @default(uuid()) @db.Uuid
+  batchId             String            @map("batch_id") @db.Uuid
+  courseId            String?           @map("course_id") @db.Uuid
+  type                SessionType
+  title               String
+  startsAt            DateTime          @map("starts_at") @db.Timestamptz(6)
+  endsAt              DateTime          @map("ends_at") @db.Timestamptz(6)
+  trainerId           String?           @map("trainer_id") @db.Uuid
+  /// Online meeting link: shown only to students enrolled in the batch, from 30 minutes before the start.
+  joinUrl             String?           @map("join_url")
+  room                String?
+  status              SessionStatus     @default(scheduled)
+  cancelReason        String?           @map("cancel_reason")
+  /// Mentor sessions do not count toward attendance (prototype rule); classes, labs and quizzes do.
+  countsForAttendance Boolean           @default(true) @map("counts_for_attendance")
+  createdById         String            @map("created_by") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  batch               Batch             @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  attendance          Attendance[]
+  feedback            TrainerFeedback[]
+
+  @@index([batchId, startsAt])
+  @@index([trainerId, startsAt])
+  @@map("class_sessions")
+}
+
+enum AttendanceMark {
+  present
+  absent
+  late
+  excused
+}
+
+model Attendance {
+  sessionId  String         @map("session_id") @db.Uuid
+  studentId  String         @map("student_id") @db.Uuid
+  mark       AttendanceMark
+  note       String?
+  markedById String         @map("marked_by") @db.Uuid
+  markedAt   DateTime       @map("marked_at") @db.Timestamptz(6)
+  session    ClassSession   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@id([sessionId, studentId])
+  @@index([studentId])
+  @@map("attendance")
+}
+
+/// Every attendance change after the first mark (append-only), with the reason.
+model AttendanceHistory {
+  id        String          @id @default(uuid()) @db.Uuid
+  sessionId String          @map("session_id") @db.Uuid
+  studentId String          @map("student_id") @db.Uuid
+  fromMark  AttendanceMark? @map("from_mark")
+  toMark    AttendanceMark  @map("to_mark")
+  reason    String?
+  actorId   String          @map("actor_id") @db.Uuid
+  at        DateTime        @default(now()) @db.Timestamptz(6)
+
+  @@index([sessionId, studentId])
+  @@map("attendance_history")
+}
+
+model Holiday {
+  day     DateTime @id @db.Date
+  name    String
+  addedBy String   @map("added_by") @db.Uuid
+
+  @@map("holidays")
+}
+
+/// A time a trainer offers for 1-to-1 help or a mock interview.
+model TrainerSlot {
+  id        String           @id @default(uuid()) @db.Uuid
+  trainerId String           @map("trainer_id") @db.Uuid
+  startsAt  DateTime         @map("starts_at") @db.Timestamptz(6)
+  endsAt    DateTime         @map("ends_at") @db.Timestamptz(6)
+  kind      String           @default("one_to_one")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  requests  SessionRequest[]
+
+  @@index([trainerId, startsAt])
+  @@map("trainer_slots")
+}
+
+enum SessionRequestStatus {
+  pending
+  approved
+  rejected
+  proposed
+  cancelled
+  completed
+}
+
+/// A student's booking of a trainer slot. A proposed new time waits for the student's answer.
+model SessionRequest {
+  id            String               @id @default(uuid()) @db.Uuid
+  studentId     String               @map("student_id") @db.Uuid
+  trainerId     String               @map("trainer_id") @db.Uuid
+  slotId        String?              @map("slot_id") @db.Uuid
+  purpose       String
+  note          String?
+  startsAt      DateTime             @map("starts_at") @db.Timestamptz(6)
+  endsAt        DateTime             @map("ends_at") @db.Timestamptz(6)
+  status        SessionRequestStatus @default(pending)
+  proposedStart DateTime?            @map("proposed_start") @db.Timestamptz(6)
+  decisionNote  String?              @map("decision_note")
+  decidedAt     DateTime?            @map("decided_at") @db.Timestamptz(6)
+  /// Trainer's record after a mentoring session: what was covered and the agreed follow-up (trainer + admin only).
+  outcome       String?
+  followUp      String?              @map("follow_up")
+  outcomeAt     DateTime?            @map("outcome_at") @db.Timestamptz(6)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  slot          TrainerSlot?         @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  feedback      TrainerFeedback[]
+
+  @@index([studentId, startsAt])
+  @@index([trainerId, status])
+  @@map("session_requests")
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  withdrawn
+}
+
+model LeaveRequest {
+  id           String      @id @default(uuid()) @db.Uuid
+  studentId    String      @map("student_id") @db.Uuid
+  fromDay      DateTime    @map("from_day") @db.Date
+  toDay        DateTime    @map("to_day") @db.Date
+  reason       String
+  status       LeaveStatus @default(pending)
+  reviewerId   String?     @map("reviewer_id") @db.Uuid
+  decisionNote String?     @map("decision_note")
+  decidedAt    DateTime?   @map("decided_at") @db.Timestamptz(6)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([studentId, fromDay])
+  @@map("leave_requests")
+}
+
+/// Student ↔ staff conversation. Only the two participants (and admins with audit) can read it.
+model Conversation {
+  id            String    @id @default(uuid()) @db.Uuid
+  studentId     String    @map("student_id") @db.Uuid
+  staffId       String    @map("staff_id") @db.Uuid
+  subject       String
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastMessageAt DateTime  @default(now()) @map("last_message_at") @db.Timestamptz(6)
+  messages      Message[]
+
+  @@index([studentId, lastMessageAt])
+  @@index([staffId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  senderId       String       @map("sender_id") @db.Uuid
+  body           String
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  readAt         DateTime?    @map("read_at") @db.Timestamptz(6)
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// ── Student Academy slice (d): assessments, questions, attempts, grading ──
+
+enum AssessmentKind {
+  quiz
+  assignment
+  lab_challenge
+  practical
+  exam
+}
+
+enum AssessmentStatus {
+  draft
+  published
+  closed
+}
+
+/// How a student hands work in: answers to questions (auto-scored), text, a file (storage pending) or a lab result.
+enum SubmissionFormat {
+  questions
+  text
+  file
+  lab_result
+}
+
+/// When students may see marks: right away, after the deadline, or when a trainer releases them.
+enum ResultsRelease {
+  immediate
+  after_due
+  manual
+}
+
+model Assessment {
+  id              String                @id @default(uuid()) @db.Uuid
+  /// Code used by lessons (refCode) and the quiz_passed activity.
+  code            String                @unique
+  courseId        String                @map("course_id") @db.Uuid
+  /// Optional: only this batch takes it (else every batch running the course).
+  batchId         String?               @map("batch_id") @db.Uuid
+  title           String
+  instructions    String                @default("")
+  kind            AssessmentKind
+  difficulty      String                @default("")
+  durationMin     Int?                  @map("duration_min")
+  opensAt         DateTime?             @map("opens_at") @db.Timestamptz(6)
+  dueAt           DateTime?             @map("due_at") @db.Timestamptz(6)
+  maxMarks        Int                   @map("max_marks")
+  passMarks       Int                   @map("pass_marks")
+  attemptsAllowed Int                   @default(1) @map("attempts_allowed")
+  format          SubmissionFormat
+  autoGrade       Boolean               @default(false) @map("auto_grade")
+  rubric          Json?
+  allowLate       Boolean               @default(false) @map("allow_late")
+  resultsRelease  ResultsRelease        @default(immediate) @map("results_release")
+  releasedAt      DateTime?             @map("released_at") @db.Timestamptz(6)
+  status          AssessmentStatus      @default(draft)
+  createdById     String                @map("created_by") @db.Uuid
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  questions       Question[]
+  attempts        Attempt[]
+  extensions      AssessmentExtension[]
+
+  @@index([courseId, status])
+  @@map("assessments")
+}
+
+enum QuestionKind {
+  single
+  multi
+  short_text
+}
+
+/// answerKey never leaves the server: option indexes for single/multi, accepted answers for short_text.
+model Question {
+  id           String       @id @default(uuid()) @db.Uuid
+  assessmentId String       @map("assessment_id") @db.Uuid
+  kind         QuestionKind
+  prompt       String
+  options      String[]     @default([])
+  answerKey    Json         @map("answer_key")
+  marks        Int          @default(1)
+  sortOrder    Int          @default(0) @map("sort_order")
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId, sortOrder])
+  @@map("questions")
+}
+
+enum AttemptStatus {
+  in_progress
+  submitted
+  graded
+  returned
+}
+
+model Attempt {
+  id           String        @id @default(uuid()) @db.Uuid
+  assessmentId String        @map("assessment_id") @db.Uuid
+  studentId    String        @map("student_id") @db.Uuid
+  number       Int
+  status       AttemptStatus @default(in_progress)
+  startedAt    DateTime      @map("started_at") @db.Timestamptz(6)
+  expiresAt    DateTime?     @map("expires_at") @db.Timestamptz(6)
+  submittedAt  DateTime?     @map("submitted_at") @db.Timestamptz(6)
+  late         Boolean       @default(false)
+  answers      Json?
+  textResponse String?       @map("text_response")
+  labRef       String?       @map("lab_ref")
+  autoScore    Int?          @map("auto_score")
+  score        Int?
+  feedback     String?
+  rubricScores Json?         @map("rubric_scores")
+  gradedById   String?       @map("graded_by") @db.Uuid
+  gradedAt     DateTime?     @map("graded_at") @db.Timestamptz(6)
+  assessment   Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, studentId, number])
+  @@index([studentId, status])
+  @@map("attempts")
+}
+
+/// Append-only record of every mark given or changed.
+model GradeHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  attemptId String   @map("attempt_id") @db.Uuid
+  fromScore Int?     @map("from_score")
+  toScore   Int      @map("to_score")
+  reason    String?
+  actorId   String   @map("actor_id") @db.Uuid
+  at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([attemptId])
+  @@map("grade_history")
+}
+
+/// A later deadline for one student, granted by a trainer or admin.
+model AssessmentExtension {
+  assessmentId String     @map("assessment_id") @db.Uuid
+  studentId    String     @map("student_id") @db.Uuid
+  dueAt        DateTime   @map("due_at") @db.Timestamptz(6)
+  grantedById  String     @map("granted_by") @db.Uuid
+  reason       String
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@id([assessmentId, studentId])
+  @@map("assessment_extensions")
+}
+
+// ── Student Academy slice (e): World Breach Map, missions, attempts, hints ──
+
+/// Cities on the World Breach Map. A city is secured for a student when every published mission in it is cleared.
+model City {
+  code      String    @id
+  name      String
+  country   String
+  sortOrder Int       @default(0) @map("sort_order")
+  missions  Mission[]
+
+  @@map("cities")
+}
+
+enum MissionStatus {
+  draft
+  published
+  retired
+}
+
+/// A lab mission. provider "native" = answer checked here against flag_hash; "mission-api" = the Python lab
+/// service (needs a server-to-server contract before it can be used; see OPEN-ITEMS).
+model Mission {
+  code           String             @id
+  title          String
+  description    String             @default("")
+  category       String
+  difficulty     String             @default("Beginner")
+  estMinutes     String             @default("") @map("est_minutes")
+  xpReward       Int                @map("xp_reward")
+  premium        Boolean            @default(false)
+  prerequisites  String[]           @default([])
+  cityCode       String?            @map("city_code")
+  provider       String             @default("native")
+  providerSlug   String?            @map("provider_slug")
+  /// sha256(salt + normalised answer). Never returned by any API.
+  flagHash       String?            @map("flag_hash")
+  flagSalt       String?            @map("flag_salt")
+  maxSubmissions Int                @default(20) @map("max_submissions")
+  status         MissionStatus      @default(draft)
+  sortOrder      Int                @default(0) @map("sort_order")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  city           City?              @relation(fields: [cityCode], references: [code], onDelete: SetNull)
+  hints          MissionHint[]
+  attempts       MissionAttempt[]
+  objectives     MissionObjective[]
+
+  @@index([status, category])
+  @@map("missions")
+}
+
+/// A step of a lab: read the briefing, pass a quiz, or submit an answer. Each step pays its XP once.
+/// Answers and quiz keys are kept only as salted SHA-256 hashes; nothing here is returned to students except the
+/// public parts (title, body, question text and options).
+model MissionObjective {
+  id           String  @id @default(uuid()) @db.Uuid
+  missionCode  String  @map("mission_code")
+  n            Int
+  /// read | quiz | answer | lab_answer
+  kind         String
+  title        String
+  body         String  @default("")
+  xp           Int     @default(0)
+  perCorrectXp Int     @default(0) @map("per_correct_xp")
+  /// text | set | date | count | session_flag (answer and lab_answer only)
+  answerFormat String? @map("answer_format")
+  answerHash   String? @map("answer_hash")
+  answerSalt   String? @map("answer_salt")
+  placeholder  String?
+  /// public quiz: [{ id, prompt, options[] }]
+  quiz         Json?
+  /// question id -> salted hash of the correct option index (never returned)
+  quizKey      Json?   @map("quiz_key")
+  mission      Mission @relation(fields: [missionCode], references: [code], onDelete: Cascade)
+
+  @@unique([missionCode, n])
+  @@map("mission_objectives")
+}
+
+/// A student's progress on one step. completedAt is set once; XP for the step is paid once (ledger source key).
+model ObjectiveProgress {
+  userId      String    @map("user_id") @db.Uuid
+  missionCode String    @map("mission_code")
+  n           Int
+  tries       Int       @default(0)
+  score       Int?
+  maxScore    Int?      @map("max_score")
+  xpAwarded   Int?      @map("xp_awarded")
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, missionCode, n])
+  @@map("objective_progress")
+}
+
+/// Hint texts (server-only until a student pays for them). At most 3 per mission.
+model MissionHint {
+  missionCode String  @map("mission_code")
+  n           Int
+  text        String
+  mission     Mission @relation(fields: [missionCode], references: [code], onDelete: Cascade)
+
+  @@id([missionCode, n])
+  @@map("mission_hints")
+}
+
+enum MissionAttemptStatus {
+  active
+  completed
+  abandoned
+}
+
+model MissionAttempt {
+  id          String               @id @default(uuid()) @db.Uuid
+  userId      String               @map("user_id") @db.Uuid
+  missionCode String               @map("mission_code")
+  status      MissionAttemptStatus @default(active)
+  submissions Int                  @default(0)
+  startedAt   DateTime             @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime?            @map("completed_at") @db.Timestamptz(6)
+  xpAwarded   Int?                 @map("xp_awarded")
+  mission     Mission              @relation(fields: [missionCode], references: [code], onDelete: Restrict)
+
+  @@index([userId, missionCode])
+  @@map("mission_attempts")
+}
+
+/// A revealed hint, charged once per student and mission (a new attempt never refunds it).
+model HintUse {
+  userId      String   @map("user_id") @db.Uuid
+  missionCode String   @map("mission_code")
+  n           Int
+  pct         Int
+  basis       String
+  xpCost      Int?     @map("xp_cost")
+  at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([userId, missionCode, n])
+  @@map("hint_uses")
+}
+
+// ── Student Academy slice (f): Intel blogs with admin moderation ──
+
+enum BlogStatus {
+  draft
+  in_review
+  changes_requested
+  published
+  rejected
+  unpublished
+}
+
+/// A student's blog. Plain text only; published only by an admin's approval.
+model Blog {
+  id             String         @id @default(uuid()) @db.Uuid
+  slug           String?        @unique @db.Citext
+  authorId       String         @map("author_id") @db.Uuid
+  title          String
+  body           String
+  tags           String[]       @default([])
+  status         BlogStatus     @default(draft)
+  readingMinutes Int            @default(1) @map("reading_minutes")
+  submittedAt    DateTime?      @map("submitted_at") @db.Timestamptz(6)
+  publishedAt    DateTime?      @map("published_at") @db.Timestamptz(6)
+  reviewerId     String?        @map("reviewer_id") @db.Uuid
+  reviewNote     String?        @map("review_note")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  reactions      BlogReaction[]
+  comments       BlogComment[]
+  views          BlogView[]
+  events         BlogEvent[]
+
+  @@index([status, publishedAt])
+  @@index([authorId])
+  @@map("blogs")
+}
+
+/// Moderation history (append-only).
+model BlogEvent {
+  id      String   @id @default(uuid()) @db.Uuid
+  blogId  String   @map("blog_id") @db.Uuid
+  actorId String   @map("actor_id") @db.Uuid
+  action  String
+  note    String?
+  at      DateTime @default(now()) @db.Timestamptz(6)
+  blog    Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@index([blogId, at])
+  @@map("blog_events")
+}
+
+/// One reaction (clap) per user and blog.
+model BlogReaction {
+  blogId    String   @map("blog_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  blog      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@id([blogId, userId])
+  @@map("blog_reactions")
+}
+
+enum CommentStatus {
+  visible
+  hidden
+}
+
+model BlogComment {
+  id        String        @id @default(uuid()) @db.Uuid
+  blogId    String        @map("blog_id") @db.Uuid
+  authorId  String        @map("author_id") @db.Uuid
+  body      String
+  status    CommentStatus @default(visible)
+  hiddenBy  String?       @map("hidden_by") @db.Uuid
+  hiddenWhy String?       @map("hidden_why")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  blog      Blog          @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@index([blogId, createdAt])
+  @@map("blog_comments")
+}
+
+/// At most one counted view per user per IST day.
+model BlogView {
+  blogId String   @map("blog_id") @db.Uuid
+  userId String   @map("user_id") @db.Uuid
+  day    DateTime @db.Date
+  blog   Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@id([blogId, userId, day])
+  @@map("blog_views")
+}
+
+enum ReportStatus {
+  open
+  resolved
+}
+
+/// A reader's report of a blog or comment, for admins.
+model ContentReport {
+  id         String       @id @default(uuid()) @db.Uuid
+  blogId     String?      @map("blog_id") @db.Uuid
+  commentId  String?      @map("comment_id") @db.Uuid
+  reporterId String       @map("reporter_id") @db.Uuid
+  reason     String
+  status     ReportStatus @default(open)
+  resolvedBy String?      @map("resolved_by") @db.Uuid
+  resolution String?
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@map("content_reports")
+}
+
+// ── Student Academy slice (g): Placement Mission ──
+
+enum ReviewStatus {
+  not_submitted
+  submitted
+  changes_requested
+  approved
+}
+
+/// Resume header and review state; the body is assembled from the student profile, projects and verified records.
+model Resume {
+  userId      String       @id @map("user_id") @db.Uuid
+  headline    String?
+  status      ReviewStatus @default(not_submitted)
+  feedback    String?
+  reviewerId  String?      @map("reviewer_id") @db.Uuid
+  submittedAt DateTime?    @map("submitted_at") @db.Timestamptz(6)
+  reviewedAt  DateTime?    @map("reviewed_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("resumes")
+}
+
+/// Snapshot of the assembled resume at each submission (append-only version history).
+model ResumeVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  snapshot  Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@map("resume_versions")
+}
+
+model PortfolioProject {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  title       String
+  description String       @default("")
+  skills      String[]     @default([])
+  repoUrl     String?      @map("repo_url")
+  demoUrl     String?      @map("demo_url")
+  isPublic    Boolean      @default(false) @map("is_public")
+  status      ReviewStatus @default(not_submitted)
+  feedback    String?
+  reviewerId  String?      @map("reviewer_id") @db.Uuid
+  reviewedAt  DateTime?    @map("reviewed_at") @db.Timestamptz(6)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@map("portfolio_projects")
+}
+
+/// Trainer's result for a mock interview (a session request with purpose mock_interview).
+model MockInterviewResult {
+  requestId      String   @id @map("request_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  interviewerId  String   @map("interviewer_id") @db.Uuid
+  technical      Int
+  communication  Int
+  problemSolving Int      @map("problem_solving")
+  passed         Boolean
+  feedback       String
+  completedAt    DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+
+  @@index([studentId])
+  @@map("mock_interview_results")
+}
+
+/// Internship-preparation checklist configured by admins.
+model PlacementMilestone {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String
+  description String             @default("")
+  dueAt       DateTime?          @map("due_at") @db.Timestamptz(6)
+  sortOrder   Int                @default(0) @map("sort_order")
+  active      Boolean            @default(true)
+  progress    StudentMilestone[]
+
+  @@map("placement_milestones")
+}
+
+enum MilestoneStatus {
+  submitted
+  done
+  changes_requested
+}
+
+model StudentMilestone {
+  userId      String             @map("user_id") @db.Uuid
+  milestoneId String             @map("milestone_id") @db.Uuid
+  status      MilestoneStatus    @default(submitted)
+  evidenceUrl String?            @map("evidence_url")
+  note        String?
+  verifiedBy  String?            @map("verified_by") @db.Uuid
+  verifiedAt  DateTime?          @map("verified_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  milestone   PlacementMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@id([userId, milestoneId])
+  @@map("student_milestones")
+}
+
+// ── Student Academy slice (h): in-app notifications ──
+
+/// In-app notification. dedupeKey makes each source event notify a person at most once.
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  kind      String
+  title     String
+  body      String    @default("")
+  link      String?
+  important Boolean   @default(false)
+  dedupeKey String    @map("dedupe_key")
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  userId         String   @id @map("user_id") @db.Uuid
+  emailImportant Boolean  @default(true) @map("email_important")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("notification_preferences")
+}
+
+/// Career-path quiz (15 scenarios). One row per take or skip; the latest row with chosenPath is the student's path.
+model CareerPathResult {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  quizVersion  String    @map("quiz_version")
+  skipped      Boolean   @default(false)
+  answers      Json?
+  offensivePct Int?      @map("offensive_pct")
+  defensivePct Int?      @map("defensive_pct")
+  grcPct       Int?      @map("grc_pct")
+  suggested    String?
+  tiedWith     String[]  @default([]) @map("tied_with")
+  chosenPath   String?   @map("chosen_path")
+  chosenAt     DateTime? @map("chosen_at") @db.Timestamptz(6)
+  createdAt    DateTime  @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+  @@index([chosenPath])
+  @@map("career_path_results")
+}
+
+// ── Trainer desk (26 Oct): remarks, escalations / guardian-contact requests, student feedback on trainers ──
+
+enum RemarkKind {
+  /// visible to the student's trainers and admins, and in the admin student report
+  remark
+  /// visible only to the author and admins
+  private_note
+}
+
+/// A trainer's factual remark about a student. Never deleted; an edit keeps the earlier text in history.
+model StudentRemark {
+  id        String     @id @default(uuid()) @db.Uuid
+  studentId String     @map("student_id") @db.Uuid
+  authorId  String     @map("author_id") @db.Uuid
+  kind      RemarkKind
+  text      String
+  /// [{ at, text }] earlier versions, oldest first
+  history   Json       @default("[]")
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student   User       @relation("RemarkStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  author    User       @relation("RemarkAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, createdAt])
+  @@index([authorId])
+  @@map("student_remarks")
+}
+
+enum StaffRequestKind {
+  escalation
+  guardian_contact
+}
+
+enum StaffRequestStatus {
+  open
+  resolved
+}
+
+/// A trainer asks the Platform Admin to act on a student: escalate a concern, or contact the guardian (trainers never
+/// see guardian details). Resolved by an admin with a note.
+model StudentStaffRequest {
+  id           String             @id @default(uuid()) @db.Uuid
+  code         String             @unique @default(dbgenerated("('SR-'::text || (nextval('staff_request_code_seq'::regclass))::text)"))
+  studentId    String             @map("student_id") @db.Uuid
+  raisedById   String             @map("raised_by") @db.Uuid
+  kind         StaffRequestKind
+  reason       String
+  status       StaffRequestStatus @default(open)
+  resolvedById String?            @map("resolved_by") @db.Uuid
+  resolution   String?
+  resolvedAt   DateTime?          @map("resolved_at") @db.Timestamptz(6)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  student      User               @relation("RequestStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  raisedBy     User               @relation("RequestRaisedBy", fields: [raisedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([studentId])
+  @@map("student_staff_requests")
+}
+
+/// A student's rating (1–5) of a trainer for one class session they attended or one mentoring session they had.
+/// Written once by the student; trainers read it without the student's name and cannot change it.
+model TrainerFeedback {
+  id               String          @id @default(uuid()) @db.Uuid
+  studentId        String          @map("student_id") @db.Uuid
+  trainerId        String          @map("trainer_id") @db.Uuid
+  sessionId        String?         @map("session_id") @db.Uuid
+  sessionRequestId String?         @map("session_request_id") @db.Uuid
+  rating           Int
+  comment          String?
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  student          User            @relation("FeedbackStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  trainer          User            @relation("FeedbackTrainer", fields: [trainerId], references: [id], onDelete: Cascade)
+  session          ClassSession?   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionRequest   SessionRequest? @relation(fields: [sessionRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, sessionId])
+  @@unique([studentId, sessionRequestId])
+  @@index([trainerId, createdAt])
+  @@map("trainer_feedback")
+}
+
+enum CourseChangeStatus {
+  pending
+  approved
+  rejected
+}
+
+/// A trainer's edit or delete on a PUBLISHED course (owner, 29 Oct): the live course stays unchanged until a
+/// Platform Admin approves (the change is applied and the version goes up) or rejects it with a note.
+model CourseChangeRequest {
+  id            String             @id @default(uuid()) @db.Uuid
+  code          String             @unique @default(dbgenerated("('CCR-'::text || (nextval('course_change_code_seq'::regclass))::text)"))
+  courseId      String             @map("course_id") @db.Uuid
+  requestedById String             @map("requested_by_id") @db.Uuid
+  /// course.patch | course.unpublish | module.add | module.patch | module.delete | lesson.add | lesson.patch |
+  /// lesson.delete | faq.add | faq.patch | faq.delete
+  kind          String
+  /// The module, lesson or FAQ the change is about (module ID for lesson.add); null for course-level changes.
+  targetId      String?            @map("target_id") @db.Uuid
+  payload       Json               @default("{}")
+  reasonCode    String             @map("reason_code")
+  reasonNote    String?            @map("reason_note")
+  status        CourseChangeStatus @default(pending)
+  decidedById   String?            @map("decided_by_id") @db.Uuid
+  decidedAt     DateTime?          @map("decided_at") @db.Timestamptz(6)
+  decisionNote  String?            @map("decision_note")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  course        Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([courseId, status])
+  @@map("course_change_requests")
+}
+
+/// A file uploaded to a course from the trainer console (owner, 29 Oct). Bytes live in the storage driver (local disk in
+/// development, OI-45 for production); the type was checked by extension, MIME and magic bytes on upload.
+model CourseFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  courseId     String   @map("course_id") @db.Uuid
+  /// video | document | slides | lab | image | cover
+  kind         String
+  name         String
+  /// Path inside an uploaded folder ("week1/notes.pdf"); the file name for a single upload.
+  relPath      String   @map("rel_path")
+  mime         String
+  sizeBytes    Int      @map("size_bytes")
+  storageKey   String   @unique @map("storage_key")
+  /// active | pending (uploaded to a published course, waits for a Platform Admin) | removed
+  status       String   @default("active")
+  /// Virus scanning needs a provider (OI-45): every file stays "pending" until one is connected.
+  scanStatus   String   @default("pending") @map("scan_status")
+  uploadedById String   @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, status])
+  @@map("course_files")
+}
+
+enum TrainerAttendanceStatus {
+  present
+  absent
+  leave
+  half_day
+}
+
+/// Trainer attendance by day (owner, 30 Oct), next to student attendance in Admin → Attendance. A row is an admin's
+/// mark; days without a row are shown from class records (sessions the trainer took attendance for).
+model TrainerAttendance {
+  id         String                  @id @default(uuid()) @db.Uuid
+  trainerId  String                  @map("trainer_id") @db.Uuid
+  day        DateTime                @db.Date
+  status     TrainerAttendanceStatus
+  note       String?
+  markedById String                  @map("marked_by") @db.Uuid
+  createdAt  DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([trainerId, day])
+  @@index([day])
+  @@map("trainer_attendance")
+}

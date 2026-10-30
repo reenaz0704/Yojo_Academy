@@ -1,0 +1,21 @@
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font:17px/1.65 Georgia,"Times New Roman",serif;color:#2e2118;background:#fbf6ee}
+h1,h2,h3,h4,.brand,.btn,nav a,.eyebrow,label,.price{font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+a{color:#7a4a2a}.wrap{max-width:68rem;margin:0 auto;padding:0 1.25rem}.sr{position:absolute;left:-9999px}
+.top{background:#fffaf2;border-bottom:1px solid #eadfce;position:sticky;top:0;z-index:5}.bar{display:flex;align-items:center;justify-content:space-between;min-height:4.2rem}
+.brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:#2e2118;font-size:1.2rem;font-weight:600}.brand b{color:#7a4a2a}
+nav{display:flex;gap:1.6rem}nav a{text-decoration:none;color:#4b3828;font-size:.95rem;padding:.3rem 0;border-bottom:2px solid transparent}nav a:hover,nav a[aria-current]{border-color:#7a4a2a}
+.burger{display:none;background:none;border:0;padding:.5rem;cursor:pointer}.burger span{display:block;width:24px;height:2px;background:#2e2118;margin:5px 0}
+.hero{background:linear-gradient(135deg,#f4e6d2,#fbf6ee 70%);padding:4rem 0}.two{display:grid;grid-template-columns:1.2fr 1fr;gap:2.5rem;align-items:center}
+.hero h1{font-size:3rem;line-height:1.1;margin:.3rem 0 1rem}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:.78rem;color:#7a4a2a;margin:0}.lead{font-size:1.2rem;color:#5b4636}
+.art svg{width:100%;max-width:20rem;display:block;margin:auto}.btn{display:inline-block;background:#7a4a2a;color:#fff;text-decoration:none;border:0;border-radius:999px;padding:.7rem 1.4rem;font-size:.95rem;cursor:pointer}
+.btn:hover{background:#5f3820}.btn.ghost{background:transparent;color:#7a4a2a;border:1.5px solid #7a4a2a}
+.band{background:#f1e5d3;padding:2.6rem 0;margin:3rem 0}.band.alt{background:#2e2118;color:#f4e9d8}.band.alt p{color:#d9c9b4}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6rem}h2{font-size:1.9rem;margin:2.5rem 0 1rem}h3{margin:.4rem 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:1.4rem;margin-bottom:2rem}.card{background:#fffaf2;border:1px solid #eadfce;border-radius:14px;padding:1.2rem;box-shadow:0 4px 14px #3e24150d}
+.card svg{width:7rem;display:block;margin:0 auto .6rem}.card p{margin:.3rem 0;color:#5b4636}.price{font-weight:600;color:#7a4a2a!important}
+.pagehead{background:#f1e5d3;padding:3rem 0}.pagehead h1{margin:0 0 .4rem;font-size:2.4rem}.tips div{background:#fffaf2;border:1px solid #eadfce;border-radius:12px;padding:1rem 1.2rem}
+form.inline{display:flex;gap:.6rem}form.inline input{flex:1}input,textarea{width:100%;padding:.7rem .9rem;border:1px solid #d8c8b2;border-radius:10px;font:inherit;background:#fff}
+.stack{display:grid;gap:.4rem}.stack h2{margin-top:0}label{font-size:.9rem;font-weight:600}
+footer{background:#2e2118;color:#d9c9b4;margin-top:4rem;padding:2.6rem 0 1rem}footer a{color:#f4e9d8;display:block;text-decoration:none;margin:.25rem 0}footer .brand{color:#f4e9d8;display:flex}footer .brand b{color:#d9a066}
+footer h4{color:#fff;margin:.2rem 0 .5rem}.cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:2rem}.legal{border-top:1px solid #4a382a;margin-top:2rem;padding-top:1rem;font-size:.85rem}
+@media(max-width:760px){.two,.three,.cols{grid-template-columns:1fr}.hero h1{font-size:2.2rem}.burger{display:block}nav{display:none;position:absolute;left:0;right:0;top:4.2rem;background:#fffaf2;flex-direction:column;gap:0;border-bottom:1px solid #eadfce;padding:.5rem 1.25rem}nav.open{display:flex}nav a{padding:.7rem 0}}
