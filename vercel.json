@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "mission-api": {
+      "root": "mission-api",
+      "framework": "fastapi"
+    },
+    "app": {
+      "root": "mission-api/lab3/app",
+      "framework": "express"
+    },
+    "backend": {
+      "root": "yojo-backend-auth-ctf-lms/backend",
+      "runtime": "container"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}
